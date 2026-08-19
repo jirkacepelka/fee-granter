@@ -70,14 +70,14 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     chainName: "Secret Network",
     isTestnet: false,
     lcdUrls: endpointList(process.env.NEXT_PUBLIC_SECRET_MAINNET_LCD_URL, [
+      "https://lcd-secret.keplr.app",
       "https://lcd.mainnet.secretsaturn.net",
-      "https://secret.api.trivium.network:1317",
       "https://lcd.secret.express",
       "https://secret-api.lavenderfive.com",
     ]),
     rpcUrls: endpointList(process.env.NEXT_PUBLIC_SECRET_MAINNET_RPC_URL, [
+      "https://rpc-secret.keplr.app",
       "https://rpc.mainnet.secretsaturn.net",
-      "https://secret.api.trivium.network:26657",
       "https://rpc.secret.express",
     ]),
     explorerTxTemplate:

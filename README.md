@@ -41,8 +41,8 @@ different node without touching code. See `.env.example`.
 | --- | --- | --- |
 | `NEXT_PUBLIC_SECRET_LCD_URL` | pulsar-3 | `pulsar.lcd.secretnodes.com` + fallbacks |
 | `NEXT_PUBLIC_SECRET_RPC_URL` | pulsar-3 | `pulsar.rpc.secretnodes.com` + fallbacks |
-| `NEXT_PUBLIC_SECRET_MAINNET_LCD_URL` | secret-4 | `lcd.mainnet.secretsaturn.net` + fallbacks |
-| `NEXT_PUBLIC_SECRET_MAINNET_RPC_URL` | secret-4 | `rpc.mainnet.secretsaturn.net` + fallbacks |
+| `NEXT_PUBLIC_SECRET_MAINNET_LCD_URL` | secret-4 | `lcd-secret.keplr.app` + fallbacks |
+| `NEXT_PUBLIC_SECRET_MAINNET_RPC_URL` | secret-4 | `rpc-secret.keplr.app` + fallbacks |
 | `NEXT_PUBLIC_EXPLORER_TX_URL` | pulsar-3 | ping.pub testnet |
 | `NEXT_PUBLIC_MAINNET_EXPLORER_TX_URL` | secret-4 | Mintscan |
 | `NEXT_PUBLIC_PRICE_API_URL` | — | Osmosis SQS |
@@ -75,13 +75,16 @@ suggestion, so a dead RPC surfaces at connect time and is reported separately.
 ## Wallet menu
 
 Balance comes from `x/bank`. The USD value comes from the
-[Osmosis price API](https://docs.osmosis.zone/integrate/prices/), keyed by SCRT's IBC denom;
-testnet SCRT has no market, so pulsar-3 shows "No price" rather than a fabricated number, and
-a feed that is down or answers in an unexpected shape shows "Price unavailable" rather than a
-wrong figure.
+[Osmosis price API](https://docs.osmosis.zone/integrate/prices/), keyed by SCRT's IBC denom.
+Browser access to that host depends on it sending CORS headers, which is outside this app's
+control, so **CoinGecko is tried as a fallback**; the first source returning a usable number
+wins. Testnet SCRT has no market, so pulsar-3 shows "No price" rather than a fabricated
+number, and if every source fails the label reads "Price unavailable" — hover it for the
+reason — rather than showing a wrong figure.
 
-**Deposit** renders the address as an inline SVG QR code. **Send** is a plain `MsgSend`, with
-a Max button that leaves enough behind to cover the fee.
+**Deposit** and **Send** open inside the wallet popover itself, not as separate dialogs.
+Deposit renders the address as an inline SVG QR code; Send is a plain `MsgSend` with a Max
+button that leaves enough behind to cover the fee.
 
 **Activity** is limited to what this app is about: SCRT in, SCRT out, and fee grants being
 spent. Cosmos exposes this only as an indexed event search (`transfer.sender`,

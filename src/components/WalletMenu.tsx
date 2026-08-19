@@ -10,12 +10,15 @@ import { DISPLAY_DENOM } from "@/lib/chains";
 import { formatAmount, fromMicroUnits, truncateAddress } from "@/lib/format";
 
 import { Button } from "./Button";
-import { DepositModal } from "./DepositModal";
+import { DepositPanel } from "./DepositPanel";
 import { Dropdown } from "./Dropdown";
 import { HistoryList } from "./HistoryList";
-import { SendModal } from "./SendModal";
+import { SendPanel } from "./SendPanel";
 import { SettingsModal } from "./SettingsModal";
 import styles from "./WalletMenu.module.css";
+
+/** Which view the popover is showing. Deposit and send stay in place. */
+type View = "main" | "deposit" | "send";
 
 interface WalletMenuProps {
   /** Opens the send flow; the dashboard owns the transaction so it can refresh. */
@@ -44,8 +47,7 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
   const { chain } = useSettings();
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [sendOpen, setSendOpen] = useState(false);
+  const [view, setView] = useState<View>("main");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -101,7 +103,11 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
         label="Wallet menu"
         align="right"
         panelClassName={styles.panel}
-        onOpenChange={setMenuOpen}
+        onOpenChange={(open) => {
+          setMenuOpen(open);
+          // Always reopen on the main view rather than wherever it was left.
+          if (!open) setView("main");
+        }}
         trigger={(open) => (
           <span className={`${styles.chip} ${open ? styles.chipOpen : ""}`}>
             <Wallet size={16} aria-hidden />
@@ -116,14 +122,39 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
           </span>
         )}
       >
-        {(close) => (
+        {(close) => {
+          if (view === "deposit") {
+            return <DepositPanel address={address} onBack={() => setView("main")} />;
+          }
+
+          if (view === "send") {
+            return (
+              <SendPanel
+                balance={balance}
+                submitting={sending}
+                onBack={() => setView("main")}
+                onSubmit={async (to, amount, memo) => {
+                  await onSend(to, amount, memo);
+                  setView("main");
+                  close();
+                }}
+              />
+            );
+          }
+
+          return (
             <div className={styles.menu}>
               <div className={styles.balanceBlock}>
                 <span className={styles.balanceLabel}>{chain.label} balance</span>
                 <span className={styles.balanceValue}>
                   {balance === undefined ? "—" : formatAmount(balance)} {DISPLAY_DENOM}
                 </span>
-                <span className={styles.balanceFiat}>{fiatLine(balance, price)}</span>
+                <span
+                  className={styles.balanceFiat}
+                  title={price.status === "unavailable" ? price.reason : undefined}
+                >
+                  {fiatLine(balance, price)}
+                </span>
               </div>
 
               <button className={styles.addressRow} onClick={() => void copy()}>
@@ -135,10 +166,7 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
                 <Button
                   size="sm"
                   icon={<ArrowDownToLine size={15} aria-hidden />}
-                  onClick={() => {
-                    setDepositOpen(true);
-                    close();
-                  }}
+                  onClick={() => setView("deposit")}
                 >
                   Deposit
                 </Button>
@@ -146,10 +174,7 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
                   size="sm"
                   variant="ghost"
                   icon={<Send size={15} aria-hidden />}
-                  onClick={() => {
-                    setSendOpen(true);
-                    close();
-                  }}
+                  onClick={() => setView("send")}
                 >
                   Send
                 </Button>
@@ -185,24 +210,10 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
                 </button>
               </div>
             </div>
-        )}
+          );
+        }}
       </Dropdown>
 
-      <DepositModal
-        open={depositOpen}
-        address={address}
-        onClose={() => setDepositOpen(false)}
-      />
-      <SendModal
-        open={sendOpen}
-        balance={balance}
-        submitting={sending}
-        onClose={() => setSendOpen(false)}
-        onSubmit={async (to, amount, memo) => {
-          await onSend(to, amount, memo);
-          setSendOpen(false);
-        }}
-      />
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );

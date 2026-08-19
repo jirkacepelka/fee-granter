@@ -1,17 +1,45 @@
-.form {
+.panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-2);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back {
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
+}
+
+.back:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -24,8 +52,8 @@
 }
 
 .optional {
-  margin-left: 6px;
-  font-size: 12px;
+  margin-left: 5px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--color-text-faint);
   text-transform: uppercase;
@@ -36,7 +64,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-accent);
 }
@@ -47,11 +75,11 @@
 
 .input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 9px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-bg);
-  font-size: 15px;
+  font-size: 14px;
   transition: border-color var(--transition);
 }
 
@@ -79,13 +107,13 @@
 }
 
 .inputWithSuffix .input {
-  padding-right: 58px;
+  padding-right: 54px;
 }
 
 .suffix {
   position: absolute;
-  right: 14px;
-  font-size: 14px;
+  right: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-faint);
   pointer-events: none;
@@ -93,12 +121,19 @@
 
 .error {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
   color: var(--color-danger);
 }
 
 .error svg {
+  margin-top: 1px;
   flex-shrink: 0;
+}
+
+.submit {
+  width: 100%;
+  margin-top: 2px;
 }
