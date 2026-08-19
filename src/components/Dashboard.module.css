@@ -221,16 +221,3 @@
   }
 }
 
-.cardWarning {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: calc(-1 * var(--space-4)) 0 0;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  color: var(--color-warning);
-}
-
-.cardWarning svg {
-  flex-shrink: 0;
-}

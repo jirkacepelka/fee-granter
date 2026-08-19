@@ -4,17 +4,11 @@ import { ArrowLeft, CircleAlert } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { DECIMALS, DISPLAY_DENOM } from "@/lib/chains";
-import { GAS_PRICE_USCRT, GAS_SEND } from "@/lib/chains";
-import {
-  availableFee,
-  estimateFee,
-  selectFeeGrant,
-  type FeeGrant,
-  type SelectionMode,
-} from "@/lib/feegrant-sdk";
+import { MSG_SEND, useFeePayer } from "@/hooks/useFeePayer";
+import { GAS_SEND } from "@/lib/chains";
+import type { Selection } from "@/lib/feegrant-sdk";
 import {
   formatAmount,
-  formatPeriod,
   fromMicroUnits,
   isValidAddress,
   toMicroUnits,
@@ -26,16 +20,9 @@ import styles from "./SendPanel.module.css";
 
 interface SendPanelProps {
   balance?: string;
-  /** Grants this wallet may charge the fee to. */
-  feeGrants: FeeGrant[];
   submitting: boolean;
   onBack: () => void;
-  onSubmit: (
-    to: string,
-    amount: string,
-    memo: string,
-    feeGranter?: string,
-  ) => Promise<void>;
+  onSubmit: (to: string, amount: string, memo: string) => Promise<void>;
 }
 
 const AMOUNT_PATTERN = /^\d*(\.\d*)?$/;
@@ -44,36 +31,15 @@ const AMOUNT_PATTERN = /^\d*(\.\d*)?$/;
 const FEE_HEADROOM_USCRT = 25_000n;
 
 /** Send view, rendered inside the wallet popover rather than as a dialog. */
-export function SendPanel({
-  balance,
-  feeGrants,
-  submitting,
-  onBack,
-  onSubmit,
-}: SendPanelProps) {
+export function SendPanel({ balance, submitting, onBack, onSubmit }: SendPanelProps) {
+  // Who pays is a single app-wide preference, set in Settings, so every
+  // transaction behaves the same way. This only reports the outcome.
+  const { resolve } = useFeePayer();
+  const feePayer = resolve(GAS_SEND, [MSG_SEND]);
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [touched, setTouched] = useState(false);
-  const [feeMode, setFeeMode] = useState<SelectionMode>("auto");
-  /** Only consulted when feeMode is "select". */
-  const [chosenGranter, setChosenGranter] = useState("");
-
-  // What the transaction will actually pay, so a grant is only offered when it
-  // can really cover it.
-  const fee = estimateFee(GAS_SEND, GAS_PRICE_USCRT);
-
-  const selection = useMemo(
-    () =>
-      selectFeeGrant(feeGrants, {
-        mode: feeMode,
-        granter: chosenGranter || undefined,
-        fee,
-        msgTypeUrls: ["/cosmos.bank.v1beta1.MsgSend"],
-      }),
-    [feeGrants, feeMode, chosenGranter, fee],
-  );
-
   const errors = useMemo(() => {
     const result: { to?: string; amount?: string } = {};
 
@@ -111,7 +77,7 @@ export function SendPanel({
     event.preventDefault();
     setTouched(true);
     if (hasErrors) return;
-    await onSubmit(to.trim(), amount.trim(), memo, selection.granter);
+    await onSubmit(to.trim(), amount.trim(), memo);
   };
 
   return (
@@ -188,48 +154,7 @@ export function SendPanel({
         />
       </label>
 
-      {feeGrants.length > 0 ? (
-        <div className={styles.field}>
-          <span className={styles.label}>Fee paid by</span>
-          <div className={styles.segmented} role="group" aria-label="Fee payer">
-            {(
-              [
-                ["auto", "Auto"],
-                ["select", "Choose"],
-                ["off", "This wallet"],
-              ] as Array<[SelectionMode, string]>
-            ).map(([mode, label]) => (
-              <button
-                key={mode}
-                type="button"
-                className={`${styles.segment} ${feeMode === mode ? styles.segmentActive : ""}`}
-                aria-pressed={feeMode === mode}
-                onClick={() => setFeeMode(mode)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {feeMode === "select" ? (
-            <select
-              className={styles.select}
-              value={chosenGranter}
-              onChange={(event) => setChosenGranter(event.target.value)}
-              aria-label="Fee granter"
-            >
-              <option value="">Pick a grant…</option>
-              {feeGrants.map((grant) => (
-                <option key={grant.granter} value={grant.granter}>
-                  {grantLabel(grant)}
-                </option>
-              ))}
-            </select>
-          ) : null}
-
-          <span className={styles.feeNote}>{describeSelection(selection, feeMode)}</span>
-        </div>
-      ) : null}
+      <p className={styles.feeNote}>{describeFeePayer(feePayer)}</p>
 
       <Button type="submit" loading={submitting} className={styles.submit}>
         Send
@@ -238,41 +163,23 @@ export function SendPanel({
   );
 }
 
-/** "secret1abc…wxyz — 0.15 SCRT / day" */
-function grantLabel(grant: FeeGrant): string {
-  const available = availableFee(grant);
-  const amount =
-    available === undefined
-      ? "unlimited"
-      : `${formatAmount(available.toString(), 4)} ${DISPLAY_DENOM}`;
-  const cadence =
-    grant.kind === "periodic" ? ` / ${formatPeriod(grant.periodSeconds)}` : " one-time";
-  return `${truncateAddress(grant.granter, 10, 4)} — ${amount}${cadence}`;
-}
-
-/** One line explaining what will actually pay, and why. */
-function describeSelection(
-  selection: ReturnType<typeof selectFeeGrant>,
-  mode: SelectionMode,
-): string {
+/** One line saying what will pay this transaction's fee, and why. */
+function describeFeePayer(selection: Selection): string {
   if (selection.grant) {
-    const who = truncateAddress(selection.grant.granter, 10, 4);
-    return mode === "auto" ? `Auto-picked ${who}.` : `Paid by ${who}.`;
+    return `Fee paid by a grant from ${truncateAddress(selection.grant.granter, 10, 4)}.`;
   }
 
   switch (selection.reason) {
-    case "off":
-      return "The fee comes out of this wallet.";
     case "no-usable-grant":
-      return "No grant can cover this fee — paying from this wallet.";
+      return "No fee grant covers this — the fee comes from this wallet.";
     case "granter-not-given":
-      return "Pick a grant, or the fee comes from this wallet.";
+      return "No grant chosen in Settings — the fee comes from this wallet.";
     case "granter-not-usable":
       return selection.rejected === "expired"
-        ? "That grant has expired — paying from this wallet."
+        ? "The grant chosen in Settings has expired — this wallet pays."
         : selection.rejected === "message-not-allowed"
-          ? "That grant does not cover transfers — paying from this wallet."
-          : "That grant cannot cover this fee — paying from this wallet.";
+          ? "The grant chosen in Settings does not cover transfers — this wallet pays."
+          : "The grant chosen in Settings cannot cover this fee — this wallet pays.";
     default:
       return "The fee comes out of this wallet.";
   }

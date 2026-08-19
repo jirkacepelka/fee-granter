@@ -27,8 +27,6 @@ const GRANT_KINDS: Array<{ kind: GrantKind; label: string }> = [
 
 interface GrantFormModalProps {
   open: boolean;
-  /** Warning shown above the buttons when the grant would breach the ceiling. */
-  capWarning?: string;
   /** Present when editing; absent when creating. */
   grant?: FeeGrant;
   submitting: boolean;
@@ -123,7 +121,6 @@ function validate(form: FormState, isEdit: boolean): Partial<Record<keyof FormSt
 export function GrantFormModal({
   open,
   grant,
-  capWarning,
   submitting,
   onClose,
   onSubmit,
@@ -193,13 +190,6 @@ export function GrantFormModal({
       }
     >
       <form id="grant-form" className={styles.form} onSubmit={handleSubmit} noValidate>
-        {capWarning ? (
-          <p className={styles.capWarning}>
-            <CircleAlert size={15} aria-hidden />
-            {capWarning}
-          </p>
-        ) : null}
-
         <div className={styles.field}>
           <span className={styles.label}>Grant type</span>
           <div className={styles.segmented} role="group" aria-label="Grant type">

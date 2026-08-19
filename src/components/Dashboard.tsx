@@ -1,13 +1,24 @@
 "use client";
 
-import { Ban, Info, Plus, RefreshCw, TriangleAlert, Wallet } from "lucide-react";
+import { Ban, Info, Plus, RefreshCw, Wallet } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { TxResponse } from "secretjs";
 
 import { useGrants } from "@/hooks/useGrants";
 import { useWallet } from "@/hooks/useWallet";
+import {
+  MSG_GRANT_ALLOWANCE,
+  MSG_REVOKE_ALLOWANCE,
+  MSG_SEND,
+  useFeePayer,
+} from "@/hooks/useFeePayer";
 import { useSettings } from "@/hooks/useSettings";
-import { DISPLAY_DENOM } from "@/lib/chains";
+import {
+  DISPLAY_DENOM,
+  GAS_GRANT,
+  GAS_REVOKE,
+  GAS_SEND,
+} from "@/lib/chains";
 import { sendScrt } from "@/lib/bank";
 import {
   grantAllowance,
@@ -26,7 +37,6 @@ import {
   truncateAddress,
 } from "@/lib/format";
 import { forgetGrantee, rememberGrantee } from "@/lib/registry";
-import { toMicroUnits } from "@/lib/format";
 
 import { Amount } from "./Amount";
 import { Button } from "./Button";
@@ -55,7 +65,8 @@ function errorMessage(caught: unknown): string {
 
 export function Dashboard() {
   const { status, address, client, error: walletError, refreshBalance } = useWallet();
-  const { chain, dailyCap } = useSettings();
+  const { chain } = useSettings();
+  const { granterFor, refresh: refreshFeeGrants } = useFeePayer();
   const { grants, loading, error, source, refresh, retry } = useGrants(address);
   const { notifySuccess, notifyError } = useToast();
 
@@ -69,23 +80,6 @@ export function Dashboard() {
   const periodLabel = formatPeriod(totals.dominantPeriod ?? 86_400);
   const usage = percentUsed(totals.periodUsed, totals.periodTotal);
 
-  /**
-   * The self-imposed ceiling, in base units. This is a guard rail in this app
-   * only: x/feegrant has no account-wide budget, so it cannot be enforced
-   * on-chain and a grant made elsewhere can still exceed it.
-   */
-  const capMicro = useMemo(() => {
-    const raw = dailyCap.trim();
-    if (!raw) return undefined;
-    try {
-      const parsed = BigInt(toMicroUnits(raw));
-      return parsed > 0n ? parsed : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [dailyCap]);
-
-  const overCap = capMicro !== undefined && totals.periodTotal > capMicro;
 
   /** Run a transaction, surface the outcome and reload the list. */
   const runTx = useCallback(
@@ -95,7 +89,7 @@ export function Dashboard() {
       try {
         const tx = assertTxSuccess(await action());
         notifySuccess(successMessage, tx.transactionHash);
-        await refresh();
+        await Promise.all([refresh(), refreshFeeGrants()]);
         return true;
       } catch (caught) {
         notifyError(errorMessage(caught));
@@ -104,7 +98,7 @@ export function Dashboard() {
         setSubmitting(false);
       }
     },
-    [client, address, notifySuccess, notifyError, refresh],
+    [client, address, notifySuccess, notifyError, refresh, refreshFeeGrants],
   );
 
   const handleSubmit = useCallback(
@@ -115,8 +109,18 @@ export function Dashboard() {
       const ok = await runTx(
         () =>
           isEdit
-            ? updateAllowance(client, address, input)
-            : grantAllowance(client, address, input),
+            ? updateAllowance(
+                client,
+                address,
+                input,
+                granterFor(GAS_GRANT + GAS_REVOKE, [MSG_REVOKE_ALLOWANCE, MSG_GRANT_ALLOWANCE]),
+              )
+            : grantAllowance(
+                client,
+                address,
+                input,
+                granterFor(GAS_GRANT, [MSG_GRANT_ALLOWANCE]),
+              ),
         isEdit
           ? `Fee grant for ${truncateAddress(input.grantee)} updated.`
           : `Fee grant for ${truncateAddress(input.grantee)} created.`,
@@ -128,7 +132,7 @@ export function Dashboard() {
         setEditing(undefined);
       }
     },
-    [client, address, editing, runTx, chain.chainId],
+    [client, address, editing, runTx, chain.chainId, granterFor],
   );
 
   const handleRevoke = useCallback(async () => {
@@ -136,7 +140,13 @@ export function Dashboard() {
     const grantee = revoking.grantee;
 
     const ok = await runTx(
-      () => revokeAllowance(client, address, grantee),
+      () =>
+        revokeAllowance(
+          client,
+          address,
+          grantee,
+          granterFor(GAS_REVOKE, [MSG_REVOKE_ALLOWANCE]),
+        ),
       `Fee grant for ${truncateAddress(grantee)} revoked.`,
     );
 
@@ -144,14 +154,20 @@ export function Dashboard() {
       forgetGrantee(chain.chainId, address, grantee);
       setRevoking(undefined);
     }
-  }, [client, address, revoking, runTx, chain.chainId]);
+  }, [client, address, revoking, runTx, chain.chainId, granterFor]);
 
   const handleSuspendAll = useCallback(async () => {
     if (!client || !address || grants.length === 0) return;
     const grantees = grants.map((grant) => grant.grantee);
 
     const ok = await runTx(
-      () => revokeAll(client, address, grantees),
+      () =>
+        revokeAll(
+          client,
+          address,
+          grantees,
+          granterFor(GAS_REVOKE * grantees.length, [MSG_REVOKE_ALLOWANCE]),
+        ),
       `${pluralize(grantees.length, "fee grant")} revoked.`,
     );
 
@@ -159,18 +175,18 @@ export function Dashboard() {
       grantees.forEach((grantee) => forgetGrantee(chain.chainId, address, grantee));
       setSuspendOpen(false);
     }
-  }, [client, address, grants, runTx, chain.chainId]);
+  }, [client, address, grants, runTx, chain.chainId, granterFor]);
 
   const handleSend = useCallback(
-    async (to: string, amount: string, memo: string, feeGranter?: string) => {
+    async (to: string, amount: string, memo: string) => {
       if (!client || !address) return;
       await runTx(
-        () => sendScrt(client, address, to, amount, memo, feeGranter),
+        () => sendScrt(client, address, to, amount, memo, granterFor(GAS_SEND, [MSG_SEND])),
         `Sent ${amount} ${DISPLAY_DENOM} to ${truncateAddress(to)}.`,
       );
       await refreshBalance();
     },
-    [client, address, runTx, refreshBalance],
+    [client, address, runTx, refreshBalance, granterFor],
   );
 
   const openCreate = () => {
@@ -226,14 +242,6 @@ export function Dashboard() {
                 per={periodLabel}
                 size="lg"
               />
-              {capMicro !== undefined ? (
-                <p className={overCap ? styles.cardWarning : styles.cardNote}>
-                  {overCap ? <TriangleAlert size={13} aria-hidden /> : null}
-                  {overCap ? "Over your " : "Your "}ceiling of{" "}
-                  {formatAmount(capMicro.toString())} {DISPLAY_DENOM} / day
-                  {overCap ? "" : ` · ${formatAmount((capMicro - totals.periodTotal).toString())} ${DISPLAY_DENOM} left`}
-                </p>
-              ) : null}
               {totals.oneshotCount > 0 ? (
                 <p className={styles.cardNote}>
                   Plus {pluralize(totals.oneshotCount, "one-time grant")} worth{" "}
@@ -336,11 +344,6 @@ export function Dashboard() {
       <GrantFormModal
         open={formOpen}
         grant={editing}
-        capWarning={
-          capMicro !== undefined && overCap
-            ? `Your grants already total ${formatAmount(totals.periodTotal.toString())} ${DISPLAY_DENOM} per ${periodLabel}, over your ${formatAmount(capMicro.toString())} ${DISPLAY_DENOM} ceiling. This app cannot stop the chain from honouring them — lower or revoke a grant to get back under it.`
-            : undefined
-        }
         submitting={submitting}
         onClose={() => {
           setFormOpen(false);

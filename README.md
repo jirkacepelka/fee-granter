@@ -114,12 +114,13 @@ found" rather than claiming there is none.
 
 - **Appearance** — dark, light, or follow the system.
 - **Endpoints** — per-chain LCD and RPC overrides.
-- **Daily spending ceiling** — a budget you set for yourself, shown above the figure
-  calculated from your grants, with a warning when your grants exceed it.
+- **Transaction fees** — who pays for everything this app sends: `Auto`, a specific grant, or
+  always this wallet.
 
-  This is a guard rail in this app, **not a chain rule**. x/feegrant has no account-wide
-  budget, so nothing stops a grant created elsewhere — or the chain itself — from going over
-  it. It is a reminder, not an enforcement mechanism.
+Fee payment is one app-wide preference rather than a choice per screen, so creating a grant,
+revoking one, suspending all and sending SCRT all resolve it the same way. Adding a new
+transaction means passing `granterFor(gasLimit, msgTypeUrls)` into its options; there is no
+second place to keep in step.
 
 ## How fee grants are modelled
 
@@ -168,8 +169,10 @@ wallet may spend against and sets `fee.granter` accordingly. The wallet menu als
 many grants can cover the connected wallet, so a grant made to your own second wallet can be
 confirmed from the receiving side.
 
-The selector offers **Auto**, **Choose** and **This wallet**, all three backed by the same
-selection logic described in [Using fee grants in your own app](#using-fee-grants-in-your-own-app).
+Which grant pays is set once under **Settings → Transaction fees** and applies to every
+transaction the app sends, using the selection logic described in
+[Using fee grants in your own app](#using-fee-grants-in-your-own-app). Send reports the
+outcome rather than offering its own control.
 
 One rejection the SDK cannot filter out: a grantee account that does not exist on chain yet.
 Accounts are created by receiving coins, and a grant does not create one, so a brand-new
@@ -332,7 +335,7 @@ as the closest freely available substitute. Swap the `next/font` import in
 src/
   app/          layout, page, design tokens
   components/   dashboard, cards, rows, modals, toasts
-  hooks/        wallet context, grant loading
+  hooks/        wallet context, grant loading, app-wide fee payer
   lib/
     feegrant-sdk.ts   standalone: fetch, parse and choose a fee grant
     feegrant.ts       grant/revoke transactions, built on the SDK

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 
 import { ToastProvider } from "@/components/Toast";
+import { FeePayerProvider } from "@/hooks/useFeePayer";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { WalletProvider } from "@/hooks/useWallet";
 
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SettingsProvider>
           <WalletProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <FeePayerProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </FeePayerProvider>
           </WalletProvider>
         </SettingsProvider>
       </body>

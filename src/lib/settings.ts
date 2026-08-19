@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID, isChainId, type ChainId } from "./chains";
+import type { SelectionMode } from "./feegrant-sdk";
 
 /** User preferences, persisted in localStorage. */
 export interface Settings {
@@ -8,14 +9,16 @@ export interface Settings {
   lcdOverride: Partial<Record<ChainId, string>>;
   rpcOverride: Partial<Record<ChainId, string>>;
   /**
-   * A self-imposed ceiling on total fee-grant spending per day, as a human
-   * decimal string. Empty means no ceiling.
+   * How every transaction this app sends pays its fee.
    *
-   * This is a guard rail in this app, not a chain rule: x/feegrant has no
-   * notion of an account-wide budget, so nothing stops a grant created
-   * elsewhere from exceeding it.
+   * - `auto`   - spend a received fee grant whenever one covers the fee.
+   * - `select` - always use `feeGranter`, falling back to this wallet when it
+   *   cannot pay.
+   * - `off`    - always pay from this wallet.
    */
-  dailyCap: string;
+  feeMode: SelectionMode;
+  /** Granter used when `feeMode` is `select`. Empty means none chosen. */
+  feeGranter: string;
 }
 
 export type ThemePreference = "system" | "dark" | "light";
@@ -27,11 +30,16 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   lcdOverride: {},
   rpcOverride: {},
-  dailyCap: "",
+  feeMode: "auto",
+  feeGranter: "",
 };
 
 function isTheme(value: unknown): value is ThemePreference {
   return value === "system" || value === "dark" || value === "light";
+}
+
+function isFeeMode(value: unknown): value is SelectionMode {
+  return value === "auto" || value === "select" || value === "off";
 }
 
 function overrides(value: unknown): Partial<Record<ChainId, string>> {
@@ -55,7 +63,8 @@ export function loadSettings(): Settings {
       theme: isTheme(parsed.theme) ? parsed.theme : DEFAULT_SETTINGS.theme,
       lcdOverride: overrides(parsed.lcdOverride),
       rpcOverride: overrides(parsed.rpcOverride),
-      dailyCap: typeof parsed.dailyCap === "string" ? parsed.dailyCap : "",
+      feeMode: isFeeMode(parsed.feeMode) ? parsed.feeMode : DEFAULT_SETTINGS.feeMode,
+      feeGranter: typeof parsed.feeGranter === "string" ? parsed.feeGranter : "",
     };
   } catch {
     return DEFAULT_SETTINGS;

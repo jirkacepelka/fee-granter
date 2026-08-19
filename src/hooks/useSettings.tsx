@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { CHAINS, type ChainConfig, type ChainId } from "@/lib/chains";
+import type { SelectionMode } from "@/lib/feegrant-sdk";
 import { resetResolvedEndpoints } from "@/lib/endpoint";
 import {
   DEFAULT_SETTINGS,
@@ -28,7 +29,8 @@ interface SettingsContextValue extends Settings {
   setChainId: (chainId: ChainId) => void;
   setTheme: (theme: ThemePreference) => void;
   setEndpointOverride: (kind: "lcd" | "rpc", chainId: ChainId, url: string) => void;
-  setDailyCap: (value: string) => void;
+  setFeeMode: (mode: SelectionMode) => void;
+  setFeeGranter: (granter: string) => void;
   /** True once localStorage has been read, so the UI does not flash defaults. */
   ready: boolean;
 }
@@ -94,7 +96,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setChainId,
       setTheme: (theme) => update({ theme }),
       setEndpointOverride,
-      setDailyCap: (dailyCap) => update({ dailyCap }),
+      setFeeMode: (feeMode) => update({ feeMode }),
+      setFeeGranter: (feeGranter) => update({ feeGranter }),
       ready,
     }),
     [settings, setChainId, setEndpointOverride, update, ready],

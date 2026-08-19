@@ -186,10 +186,15 @@ export function buildAllowance(input: GrantInput) {
   };
 }
 
-const txOptions = (gasLimit: number) => ({
+/**
+ * `feeGranter` sets `auth_info.fee.granter`. A fee grant is never applied
+ * automatically, so every transaction this app sends passes it explicitly.
+ */
+const txOptions = (gasLimit: number, feeGranter?: string) => ({
   gasLimit,
   gasPriceInFeeDenom: GAS_PRICE_USCRT,
   feeDenom: DENOM,
+  feeGranter,
 });
 
 /** Create a brand new fee grant. */
@@ -197,6 +202,7 @@ export async function grantAllowance(
   client: SecretNetworkClient,
   granter: string,
   input: GrantInput,
+  feeGranter?: string,
 ): Promise<TxResponse> {
   return client.tx.feegrant.grantAllowance(
     {
@@ -204,7 +210,7 @@ export async function grantAllowance(
       grantee: input.grantee.trim(),
       allowance: buildAllowance(input),
     },
-    txOptions(GAS_GRANT),
+    txOptions(GAS_GRANT, feeGranter),
   );
 }
 
@@ -218,13 +224,14 @@ export async function updateAllowance(
   client: SecretNetworkClient,
   granter: string,
   input: GrantInput,
+  feeGranter?: string,
 ): Promise<TxResponse> {
   const grantee = input.grantee.trim();
   const messages: Msg[] = [
     new MsgRevokeAllowance({ granter, grantee }),
     new MsgGrantAllowance({ granter, grantee, allowance: buildAllowance(input) }),
   ];
-  return client.tx.broadcast(messages, txOptions(GAS_GRANT + GAS_REVOKE));
+  return client.tx.broadcast(messages, txOptions(GAS_GRANT + GAS_REVOKE, feeGranter));
 }
 
 /** Revoke a single fee grant. */
@@ -232,10 +239,11 @@ export async function revokeAllowance(
   client: SecretNetworkClient,
   granter: string,
   grantee: string,
+  feeGranter?: string,
 ): Promise<TxResponse> {
   return client.tx.feegrant.revokeAllowance(
     { granter, grantee },
-    txOptions(GAS_REVOKE),
+    txOptions(GAS_REVOKE, feeGranter),
   );
 }
 
@@ -244,11 +252,12 @@ export async function revokeAll(
   client: SecretNetworkClient,
   granter: string,
   grantees: string[],
+  feeGranter?: string,
 ): Promise<TxResponse> {
   const messages: Msg[] = grantees.map(
     (grantee) => new MsgRevokeAllowance({ granter, grantee }),
   );
-  return client.tx.broadcast(messages, txOptions(GAS_REVOKE * grantees.length));
+  return client.tx.broadcast(messages, txOptions(GAS_REVOKE * grantees.length, feeGranter));
 }
 
 /** Aggregate figures backing the two summary cards. */
