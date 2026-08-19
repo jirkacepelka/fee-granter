@@ -154,3 +154,17 @@
   background: var(--color-hover);
   color: var(--color-text);
 }
+
+.gear {
+  display: inline-flex;
+  padding: 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.gear:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}

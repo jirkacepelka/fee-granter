@@ -14,11 +14,11 @@ import { DepositPanel } from "./DepositPanel";
 import { Dropdown } from "./Dropdown";
 import { HistoryList } from "./HistoryList";
 import { SendPanel } from "./SendPanel";
-import { SettingsModal } from "./SettingsModal";
+import { SettingsPanel } from "./SettingsPanel";
 import styles from "./WalletMenu.module.css";
 
 /** Which view the popover is showing. Deposit and send stay in place. */
-type View = "main" | "deposit" | "send";
+type View = "main" | "deposit" | "send" | "settings";
 
 interface WalletMenuProps {
   /** Opens the send flow; the dashboard owns the transaction so it can refresh. */
@@ -48,7 +48,6 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [view, setView] = useState<View>("main");
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const history = useHistory(lcdUrl, address, menuOpen);
@@ -86,13 +85,18 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
         >
           {status === "connecting" ? "Connecting" : "Connect wallet"}
         </Button>
-        <Button
-          variant="quiet"
-          onClick={() => setSettingsOpen(true)}
-          aria-label="Settings"
-          icon={<Settings size={16} aria-hidden />}
-        />
-        <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <Dropdown
+          label="Settings"
+          align="right"
+          panelClassName={styles.panel}
+          trigger={() => (
+            <span className={styles.gear}>
+              <Settings size={16} aria-hidden />
+            </span>
+          )}
+        >
+          {(close) => <SettingsPanel onBack={close} />}
+        </Dropdown>
       </div>
     );
   }
@@ -125,6 +129,10 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
         {(close) => {
           if (view === "deposit") {
             return <DepositPanel address={address} onBack={() => setView("main")} />;
+          }
+
+          if (view === "settings") {
+            return <SettingsPanel onBack={() => setView("main")} />;
           }
 
           if (view === "send") {
@@ -190,13 +198,7 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
               </div>
 
               <div className={styles.footer}>
-                <button
-                  className={styles.footerButton}
-                  onClick={() => {
-                    setSettingsOpen(true);
-                    close();
-                  }}
-                >
+                <button className={styles.footerButton} onClick={() => setView("settings")}>
                   <Settings size={15} aria-hidden /> Settings
                 </button>
                 <button
@@ -214,7 +216,6 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
         }}
       </Dropdown>
 
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

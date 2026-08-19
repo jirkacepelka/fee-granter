@@ -1,15 +1,13 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useSettings } from "@/hooks/useSettings";
-import { CHAINS, CHAIN_IDS, DISPLAY_DENOM } from "@/lib/chains";
+import { CHAINS, DISPLAY_DENOM } from "@/lib/chains";
 import type { ThemePreference } from "@/lib/settings";
 
-import { Button } from "./Button";
-import { Modal } from "./Modal";
-import styles from "./SettingsModal.module.css";
+import styles from "./SettingsPanel.module.css";
 
 const THEMES: Array<{ value: ThemePreference; label: string; icon: typeof Sun }> = [
   { value: "dark", label: "Dark", icon: Moon },
@@ -17,12 +15,12 @@ const THEMES: Array<{ value: ThemePreference; label: string; icon: typeof Sun }>
   { value: "system", label: "System", icon: Monitor },
 ];
 
-interface SettingsModalProps {
-  open: boolean;
-  onClose: () => void;
+interface SettingsPanelProps {
+  onBack: () => void;
 }
 
-export function SettingsModal({ open, onClose }: SettingsModalProps) {
+/** Settings view, rendered inside the wallet popover rather than as a dialog. */
+export function SettingsPanel({ onBack }: SettingsPanelProps) {
   const {
     chainId,
     theme,
@@ -41,26 +39,23 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [draftCap, setDraftCap] = useState("");
 
   useEffect(() => {
-    if (!open) return;
     setDraftLcd(lcdOverride[chainId] ?? "");
     setDraftRpc(rpcOverride[chainId] ?? "");
     setDraftCap(dailyCap);
-  }, [open, chainId, lcdOverride, rpcOverride, dailyCap]);
+  }, [chainId, lcdOverride, rpcOverride, dailyCap]);
 
   const chain = CHAINS[chainId];
   const capInvalid = draftCap.trim() !== "" && !/^\d*(\.\d*)?$/.test(draftCap.trim());
 
   return (
-    <Modal
-      open={open}
-      title="Settings"
-      onClose={onClose}
-      footer={
-        <Button variant="ghost" onClick={onClose}>
-          Done
-        </Button>
-      }
-    >
+    <div className={styles.panel}>
+      <header className={styles.header}>
+        <button className={styles.back} onClick={onBack} aria-label="Back to wallet">
+          <ArrowLeft size={16} aria-hidden />
+        </button>
+        <h3 className={styles.title}>Settings</h3>
+      </header>
+
       <div className={styles.section}>
         <span className={styles.label}>Appearance</span>
         <div className={styles.segmented} role="group" aria-label="Theme">
@@ -137,13 +132,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         </span>
       </div>
 
-      <div className={styles.section}>
-        <span className={styles.label}>Networks</span>
-        <span className={styles.hint}>
-          {CHAIN_IDS.map((id) => `${CHAINS[id].label} (${CHAINS[id].isTestnet ? "testnet" : "mainnet"})`).join(" · ")}
-          . Switch from the chip in the top-left corner.
-        </span>
-      </div>
-    </Modal>
+    </div>
   );
 }

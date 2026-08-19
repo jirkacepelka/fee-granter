@@ -86,12 +86,28 @@ reason — rather than showing a wrong figure.
 Deposit renders the address as an inline SVG QR code; Send is a plain `MsgSend` with a Max
 button that leaves enough behind to cover the fee.
 
+**Settings** is a third view in the same popover. It stays reachable while disconnected via
+the gear next to Connect, since a dead endpoint is exactly when you need it.
+
 **Activity** is limited to what this app is about: SCRT in, SCRT out, and fee grants being
-spent. Cosmos exposes this only as an indexed event search (`transfer.sender`,
-`transfer.recipient`, `use_feegrant.granter`), and the query parameter changed across SDK
-versions, so both `query=` and `events=` are tried. A node configured not to index will
-legitimately return nothing — the UI says "No activity found" rather than claiming there is
-none.
+spent. Cosmos exposes this only as an indexed event search, which is awkward in three ways
+the implementation works around:
+
+- The query parameter changed across SDK versions (`events=` up to 0.47, `query=` from 0.50),
+  and a node given the wrong one may answer `200` with an empty list instead of an error. An
+  empty result therefore means "try the next spelling", never "there is nothing".
+- Which event keys a node indexes varies, so several equivalent expressions are tried per
+  kind (`transfer.sender`, `message.sender`, `coin_spent.spender`, …) and merged.
+- `tx_response.logs` is populated up to SDK 0.47 and empty from 0.50, where events moved to
+  `tx_response.events` with base64 keys in some versions. Amounts are therefore read from
+  `tx.body.messages`, which is always present; events are only a fallback.
+
+Reading amounts from the messages has a second benefit: every transaction transfers a fee to
+the fee collector, so an event-based reading lists ordinary transactions as sends. Matching
+on `MsgSend`/`MsgMultiSend` instead means only real transfers appear.
+
+A node configured not to index will legitimately return nothing — the UI says "No activity
+found" rather than claiming there is none.
 
 ## Settings
 

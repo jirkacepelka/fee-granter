@@ -1,3 +1,39 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back {
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
+}
+
+.back:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .section {
   display: flex;
   flex-direction: column;
@@ -12,7 +48,7 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -62,7 +98,7 @@
 }
 
 .inputWithSuffix .input {
-  padding-right: 96px;
+  padding-right: 88px;
 }
 
 .suffix {
@@ -96,13 +132,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
-  padding: 8px 10px;
+  padding: 7px 6px;
   border: none;
   border-radius: 7px;
   background: transparent;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
   transition: background var(--transition), color var(--transition);
