@@ -1,0 +1,129 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.optional {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  font-size: 15px;
+  transition: border-color var(--transition);
+}
+
+.input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.input:hover:not([readonly]) {
+  border-color: var(--color-border-strong);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input[readonly] {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.split {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.split .inputWithSuffix {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.inputWithSuffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputWithSuffix .input {
+  padding-right: 58px;
+}
+
+.suffix {
+  position: absolute;
+  right: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  pointer-events: none;
+}
+
+.per {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.select {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.hint {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-faint);
+}
+
+.error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.error svg {
+  flex-shrink: 0;
+}

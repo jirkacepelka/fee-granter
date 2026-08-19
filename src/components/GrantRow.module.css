@@ -1,0 +1,102 @@
+/* Figma 1:19 - address left, amount right, 20px bold. Meta line and row actions
+   are additions the design left open. */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 6px 0;
+  list-style: none;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.address {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-body-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.copyIcon {
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.row:hover .copyIcon,
+.address:focus-visible .copyIcon {
+  opacity: 1;
+}
+
+.address svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.meta {
+  margin: 4px 0 0;
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+
+.expired {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.basic {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.row:hover .actions,
+.actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .actions,
+  .copyIcon {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .actions {
+    opacity: 1;
+  }
+}

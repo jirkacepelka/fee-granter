@@ -1,0 +1,29 @@
+{
+  "name": "fee-granter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fee grant dashboard for Secret Network (pulsar-3 testnet)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cosmjs/encoding": "^0.32.4",
+    "lucide-react": "^0.400.0",
+    "next": "^15.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "secretjs": "^1.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^15.5.4",
+    "typescript": "^5.7.0"
+  }
+}

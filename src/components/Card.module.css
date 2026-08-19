@@ -1,0 +1,43 @@
+/* Figma 1:52 / 1:61 - 1px rgba(255,255,255,.2) border, 20px radius, 20px pad, 30px gap */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.grow {
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.hug {
+  flex: 0 0 auto;
+  padding-right: var(--space-8);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .hug {
+    flex: 1 0 100%;
+    padding-right: var(--space-4);
+  }
+}

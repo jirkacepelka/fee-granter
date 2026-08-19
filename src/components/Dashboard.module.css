@@ -1,0 +1,205 @@
+/* Figma 1:182 / 1:60 - centred 1100px column, 50px between the summary and the list. */
+.page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+  max-width: var(--container-width);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.network {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Figma 1:113 - greeting and cards, 25px apart. */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.greeting {
+  margin: 0;
+  font-size: var(--font-size-display);
+  font-weight: 700;
+  line-height: normal;
+  overflow-wrap: anywhere;
+}
+
+.cards {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.cardNote {
+  margin: calc(-1 * var(--space-4)) 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-faint);
+}
+
+/* Figma 1:115 - list heading and rows, 30px apart. */
+.listSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.listTitle {
+  margin: 0;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+}
+
+.listActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spinning {
+  animation: spin 900ms linear infinite;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: calc(-1 * var(--space-3)) 0 0;
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+  color: var(--color-text-faint);
+}
+
+.notice svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.errorPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  border-radius: var(--radius-control);
+  background: rgba(255, 77, 77, 0.08);
+  font-size: 14px;
+}
+
+.errorPanel p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}
+
+.empty p {
+  margin: 0;
+}
+
+/* Disconnected state */
+.connectPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin: auto;
+  max-width: 460px;
+  text-align: center;
+}
+
+.connectIcon {
+  color: var(--color-accent);
+}
+
+.connectTitle {
+  margin: 0;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+}
+
+.connectCopy {
+  margin: 0;
+  font-size: var(--font-size-body);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: var(--space-4);
+  }
+
+  .container {
+    gap: var(--space-6);
+  }
+
+  .cards {
+    flex-wrap: wrap;
+  }
+
+  .greeting {
+    font-size: 34px;
+  }
+
+  .listTitle {
+    font-size: 24px;
+  }
+
+  .listHeader {
+    flex-wrap: wrap;
+  }
+}

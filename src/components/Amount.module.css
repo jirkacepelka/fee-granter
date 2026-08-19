@@ -1,0 +1,28 @@
+.amount {
+  display: flex;
+  align-items: baseline;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lg {
+  gap: var(--space-1);
+  font-size: var(--font-size-title);
+}
+
+.md {
+  gap: 3px;
+  font-size: var(--font-size-body-lg);
+}
+
+.value {
+  color: var(--color-text);
+}
+
+.lg .muted {
+  font-size: var(--font-size-body-lg);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}

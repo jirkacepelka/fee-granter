@@ -1,0 +1,113 @@
+/*
+ * Design tokens lifted from the Figma source (file IVqCdSX1kvktVvdL0FZQaT, frame 1:182).
+ * Raw hex / absolute values were the only hints available on the node - no Figma
+ * variables or Code Connect mappings - so they are centralised here instead of
+ * being scattered through the component styles.
+ */
+:root {
+  /* Surfaces */
+  --color-bg: #171717;
+  --color-surface: #1d1d1d;
+  --color-surface-raised: #222222;
+  --color-track: #121212;
+
+  /* Accent */
+  --color-accent: #ff3912;
+  --color-accent-hover: #ff5230;
+  --color-accent-press: #e02d0a;
+
+  /* Text */
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-text-faint: rgba(255, 255, 255, 0.4);
+
+  /* Lines */
+  --color-border: rgba(255, 255, 255, 0.2);
+  --color-border-strong: rgba(255, 255, 255, 0.35);
+
+  /* Status */
+  --color-danger: #ff4d4d;
+  --color-success: #35c27a;
+  --color-warning: #ffb020;
+
+  /* Radii */
+  --radius-card: 20px;
+  --radius-control: 10px;
+  --radius-pill: 999px;
+
+  /* Type scale */
+  --font-size-display: 50px;
+  --font-size-title: 30px;
+  --font-size-body-lg: 20px;
+  --font-size-body: 16px;
+  --font-size-caption: 13px;
+
+  /* Spacing rhythm */
+  --space-1: 5px;
+  --space-2: 10px;
+  --space-3: 15px;
+  --space-4: 20px;
+  --space-5: 25px;
+  --space-6: 30px;
+  --space-8: 50px;
+
+  --container-width: 1100px;
+
+  --transition: 140ms ease;
+
+  /* Render native controls (date picker, select) against the dark surface. */
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), "Google Sans Flex", "Google Sans", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variation-settings: "GRAD" 0, "ROND" 0, "wdth" 100;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

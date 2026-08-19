@@ -1,0 +1,31 @@
+.connected {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.address {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  transition: background var(--transition);
+}
+
+.address:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.address svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
