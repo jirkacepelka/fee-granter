@@ -101,9 +101,7 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
           />
         </label>
         <span className={styles.hint}>
-          Leave empty to use the built-in list. Several URLs can be given, comma separated —
-          the first that answers for {chain.chainId} is used. Queries go through the LCD; the
-          RPC is only handed to Keplr.
+          Empty uses the built-in list. Comma-separate to add fallbacks.
         </span>
       </div>
 
@@ -125,10 +123,7 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
           <span className={styles.suffix}>{DISPLAY_DENOM} / day</span>
         </div>
         <span className={styles.hint}>
-          A budget you set for yourself, shown above the figure calculated from your grants.
-          This app warns you before a grant would push the daily total over it —{" "}
-          <strong>it is not enforced on-chain</strong>, since x/feegrant has no account-wide
-          budget, so a grant made elsewhere can still exceed it.
+          A reminder only — <strong>not enforced on-chain</strong>.
         </span>
       </div>
 
