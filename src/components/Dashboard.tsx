@@ -162,10 +162,10 @@ export function Dashboard() {
   }, [client, address, grants, runTx, chain.chainId]);
 
   const handleSend = useCallback(
-    async (to: string, amount: string, memo: string) => {
+    async (to: string, amount: string, memo: string, feeGranter?: string) => {
       if (!client || !address) return;
       await runTx(
-        () => sendScrt(client, address, to, amount, memo),
+        () => sendScrt(client, address, to, amount, memo, feeGranter),
         `Sent ${amount} ${DISPLAY_DENOM} to ${truncateAddress(to)}.`,
       );
       await refreshBalance();

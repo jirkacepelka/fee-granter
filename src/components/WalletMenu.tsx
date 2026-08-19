@@ -1,9 +1,19 @@
 "use client";
 
-import { ArrowDownToLine, Check, Copy, LogOut, Send, Settings, Wallet } from "lucide-react";
+import {
+  ArrowDownToLine,
+  Check,
+  Copy,
+  Fuel,
+  LogOut,
+  Send,
+  Settings,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 
 import { useHistory } from "@/hooks/useHistory";
+import { useReceivedGrants } from "@/hooks/useReceivedGrants";
 import { useSettings } from "@/hooks/useSettings";
 import { useWallet } from "@/hooks/useWallet";
 import { DISPLAY_DENOM } from "@/lib/chains";
@@ -22,7 +32,12 @@ type View = "main" | "deposit" | "send" | "settings";
 
 interface WalletMenuProps {
   /** Opens the send flow; the dashboard owns the transaction so it can refresh. */
-  onSend: (to: string, amount: string, memo: string) => Promise<void>;
+  onSend: (
+    to: string,
+    amount: string,
+    memo: string,
+    feeGranter?: string,
+  ) => Promise<void>;
   sending: boolean;
 }
 
@@ -51,6 +66,7 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
   const [copied, setCopied] = useState(false);
 
   const history = useHistory(lcdUrl, address, menuOpen);
+  const received = useReceivedGrants(address);
 
   const copy = async () => {
     if (!address) return;
@@ -139,10 +155,11 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
             return (
               <SendPanel
                 balance={balance}
+                feeGrants={received.grants}
                 submitting={sending}
                 onBack={() => setView("main")}
-                onSubmit={async (to, amount, memo) => {
-                  await onSend(to, amount, memo);
+                onSubmit={async (to, amount, memo, feeGranter) => {
+                  await onSend(to, amount, memo, feeGranter);
                   setView("main");
                   close();
                 }}
@@ -187,6 +204,16 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
                   Send
                 </Button>
               </div>
+
+              {received.grants.length > 0 ? (
+                <p className={styles.grantNote}>
+                  <Fuel size={13} aria-hidden />
+                  {received.grants.length === 1
+                    ? "1 fee grant can cover this wallet's fees"
+                    : `${received.grants.length} fee grants can cover this wallet's fees`}
+                  . Pick it under Send.
+                </p>
+              ) : null}
 
               <div className={styles.historyBlock}>
                 <span className={styles.sectionLabel}>Activity</span>

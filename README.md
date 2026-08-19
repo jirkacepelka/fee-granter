@@ -155,6 +155,26 @@ The two summary cards aggregate across all grants:
 - **Total fee granted** — the sum of every lifetime cap, plus whatever is left on the one-time
   grants. Grants with no cap are called out separately rather than counted as zero.
 
+### Using a grant
+
+A fee grant is **never applied automatically**. The grantee's transaction has to name the
+granter in `auth_info.fee.granter`; if it does not, the fee comes out of the grantee's own
+balance as usual. Keplr does not fill that field in, so a wallet holding a grant will keep
+paying its own fees until some application asks it to use the grant.
+
+That is what the **Fee paid by** selector in Send does: it lists the grants the connected
+wallet may spend against and sets `fee.granter` accordingly. The wallet menu also says how
+many grants can cover the connected wallet, so a grant made to your own second wallet can be
+confirmed from the receiving side.
+
+Three things make the chain reject an otherwise valid grant at spend time:
+
+- The fee exceeds what is left in the current period, or the lifetime cap.
+- The grant has expired.
+- The grantee's account does not exist on chain yet. An account is only created when it first
+  receives coins, and a grant does not create one, so a brand-new address needs a small
+  deposit before it can sign anything.
+
 ### Editing a grant
 
 `x/feegrant` rejects `MsgGrantAllowance` when a grant for that granter/grantee pair already

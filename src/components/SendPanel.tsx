@@ -4,16 +4,24 @@ import { ArrowLeft, CircleAlert } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { DECIMALS, DISPLAY_DENOM } from "@/lib/chains";
-import { formatAmount, fromMicroUnits, isValidAddress, toMicroUnits } from "@/lib/format";
+import { availableNow, type FeeGrant } from "@/lib/feegrant";
+import { formatAmount, fromMicroUnits, isValidAddress, truncateAddress, toMicroUnits } from "@/lib/format";
 
 import { Button } from "./Button";
 import styles from "./SendPanel.module.css";
 
 interface SendPanelProps {
   balance?: string;
+  /** Grants this wallet may charge the fee to. */
+  feeGrants: FeeGrant[];
   submitting: boolean;
   onBack: () => void;
-  onSubmit: (to: string, amount: string, memo: string) => Promise<void>;
+  onSubmit: (
+    to: string,
+    amount: string,
+    memo: string,
+    feeGranter?: string,
+  ) => Promise<void>;
 }
 
 const AMOUNT_PATTERN = /^\d*(\.\d*)?$/;
@@ -22,11 +30,19 @@ const AMOUNT_PATTERN = /^\d*(\.\d*)?$/;
 const FEE_HEADROOM_USCRT = 25_000n;
 
 /** Send view, rendered inside the wallet popover rather than as a dialog. */
-export function SendPanel({ balance, submitting, onBack, onSubmit }: SendPanelProps) {
+export function SendPanel({
+  balance,
+  feeGrants,
+  submitting,
+  onBack,
+  onSubmit,
+}: SendPanelProps) {
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [touched, setTouched] = useState(false);
+  /** "" means pay the fee from this wallet's own balance. */
+  const [feeGranter, setFeeGranter] = useState("");
 
   const errors = useMemo(() => {
     const result: { to?: string; amount?: string } = {};
@@ -65,7 +81,7 @@ export function SendPanel({ balance, submitting, onBack, onSubmit }: SendPanelPr
     event.preventDefault();
     setTouched(true);
     if (hasErrors) return;
-    await onSubmit(to.trim(), amount.trim(), memo);
+    await onSubmit(to.trim(), amount.trim(), memo, feeGranter || undefined);
   };
 
   return (
@@ -141,6 +157,30 @@ export function SendPanel({ balance, submitting, onBack, onSubmit }: SendPanelPr
           autoComplete="off"
         />
       </label>
+
+      {feeGrants.length > 0 ? (
+        <label className={styles.field}>
+          <span className={styles.label}>Fee paid by</span>
+          <select
+            className={styles.select}
+            value={feeGranter}
+            onChange={(event) => setFeeGranter(event.target.value)}
+          >
+            <option value="">This wallet</option>
+            {feeGrants.map((grant) => {
+              const available = availableNow(grant);
+              return (
+                <option key={grant.granter} value={grant.granter}>
+                  {truncateAddress(grant.granter, 10, 4)} —{" "}
+                  {available === undefined
+                    ? "unlimited"
+                    : `${formatAmount(available, 4)} ${DISPLAY_DENOM}`}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      ) : null}
 
       <Button type="submit" loading={submitting} className={styles.submit}>
         Send

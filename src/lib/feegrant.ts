@@ -183,6 +183,44 @@ export async function queryGrantsByGranter(
   }
 }
 
+/**
+ * Fetch every grant this address may spend against.
+ *
+ * Unlike `AllowancesByGranter`, this endpoint has existed since cosmos-sdk
+ * v0.43, so it works on every Secret Network version.
+ */
+export async function queryGrantsByGrantee(
+  client: SecretNetworkClient,
+  grantee: string,
+): Promise<FeeGrant[]> {
+  const response = await client.query.feegrant.allowances({
+    grantee,
+    pagination: { limit: "100" },
+  });
+  return (response.allowances ?? [])
+    .map(parseGrant)
+    .filter((grant): grant is FeeGrant => grant !== undefined);
+}
+
+/**
+ * What the grantee can still spend against a grant right now, in base units.
+ * `undefined` means uncapped.
+ */
+export function availableNow(grant: FeeGrant): string | undefined {
+  if (grant.kind === "periodic") return grant.periodCanSpend ?? grant.periodSpendLimit;
+  return grant.spendLimit;
+}
+
+/** Grants that have not expired and still have something left on them. */
+export function usableGrants(grants: FeeGrant[]): FeeGrant[] {
+  const now = Date.now();
+  return grants.filter((grant) => {
+    if (grant.expiration && grant.expiration.getTime() < now) return false;
+    const available = availableNow(grant);
+    return available === undefined || BigInt(available) > 0n;
+  });
+}
+
 /** Look up a single granter -> grantee grant. Returns undefined when absent. */
 export async function queryGrant(
   client: SecretNetworkClient,

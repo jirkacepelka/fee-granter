@@ -12,13 +12,20 @@ export async function queryBalance(
   return response.balance?.amount ?? "0";
 }
 
-/** Send SCRT to another address. `amount` is a human decimal string. */
+/**
+ * Send SCRT to another address. `amount` is a human decimal string.
+ *
+ * `feeGranter` sets `auth_info.fee.granter` on the transaction. A fee grant is
+ * never applied automatically - the spending transaction has to name the
+ * granter, or the fee comes out of the sender's own balance.
+ */
 export async function sendScrt(
   client: SecretNetworkClient,
   from: string,
   to: string,
   amount: string,
   memo?: string,
+  feeGranter?: string,
 ): Promise<TxResponse> {
   return client.tx.bank.send(
     {
@@ -31,6 +38,7 @@ export async function sendScrt(
       gasPriceInFeeDenom: GAS_PRICE_USCRT,
       feeDenom: DENOM,
       memo: memo?.trim() || undefined,
+      feeGranter,
     },
   );
 }
