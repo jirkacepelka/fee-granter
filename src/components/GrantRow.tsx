@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Check, Copy, Infinity as InfinityIcon, Pencil, Trash2 } from "lucide-react";
+import { CalendarClock, Check, Copy, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { DISPLAY_DENOM } from "@/lib/chain";
@@ -22,19 +22,28 @@ interface GrantRowProps {
 function metaParts(grant: FeeGrant): string[] {
   const parts: string[] = [];
 
-  if (grant.kind === "periodic" && grant.periodCanSpend !== undefined) {
+  if (grant.kind === "periodic") {
+    if (grant.periodCanSpend !== undefined) {
+      parts.push(
+        `${formatAmount(grant.periodCanSpend)} ${DISPLAY_DENOM} left this ${formatPeriod(
+          grant.periodSeconds,
+        )}`,
+      );
+    }
     parts.push(
-      `${formatAmount(grant.periodCanSpend)} ${DISPLAY_DENOM} left this ${formatPeriod(
-        grant.periodSeconds,
-      )}`,
+      grant.spendLimit === undefined
+        ? "No lifetime cap"
+        : `${formatAmount(grant.spendLimit)} ${DISPLAY_DENOM} lifetime cap`,
+    );
+  } else {
+    // A BasicAllowance has no period, so its spend limit is simply what is
+    // left; the chain deletes the grant once it reaches zero.
+    parts.push(
+      grant.spendLimit === undefined
+        ? "Unlimited, never refills"
+        : `${formatAmount(grant.spendLimit)} ${DISPLAY_DENOM} left, never refills`,
     );
   }
-
-  parts.push(
-    grant.spendLimit === undefined
-      ? "No lifetime cap"
-      : `${formatAmount(grant.spendLimit)} ${DISPLAY_DENOM} lifetime cap`,
-  );
 
   const expiry = formatDate(grant.expiration);
   if (expiry) parts.push(`Expires ${expiry}`);
@@ -77,6 +86,7 @@ export function GrantRow({ grant, busy = false, onEdit, onRevoke }: GrantRowProp
             <Copy size={14} className={styles.copyIcon} aria-hidden />
           )}
         </button>
+        {grant.kind === "basic" ? <span className={styles.badge}>One-time</span> : null}
         <p className={styles.meta}>
           {expired ? (
             <span className={styles.expired}>
@@ -91,12 +101,7 @@ export function GrantRow({ grant, busy = false, onEdit, onRevoke }: GrantRowProp
         {grant.kind === "periodic" ? (
           <Amount micro={grant.periodSpendLimit} per={formatPeriod(grant.periodSeconds)} />
         ) : (
-          <div className={styles.basic}>
-            {grant.spendLimit === undefined ? (
-              <InfinityIcon size={20} aria-label="Unlimited" />
-            ) : null}
-            <Amount micro={grant.spendLimit} />
-          </div>
+          <Amount micro={grant.spendLimit} />
         )}
 
         <div className={styles.actions}>

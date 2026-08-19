@@ -67,8 +67,23 @@ suggestion, so a dead RPC surfaces at connect time and is reported separately.
 
 ## How fee grants are modelled
 
-Grants are created as a cosmos-sdk **`PeriodicAllowance`**, which is what the design's
-"X SCRT / day" implies:
+Grants come in two kinds.
+
+### One-time grants
+
+A **`BasicAllowance`** with a spend limit and no period: a fixed pot that never refills.
+`BasicAllowance.Accept` reports the grant as spent once the limit reaches zero, and
+x/feegrant then deletes it — which is what makes it unusable a second time. No "infinite
+period" trick is needed; a `BasicAllowance` simply has no period to reset.
+
+One caveat worth being explicit about: this bounds the **amount**, not the number of
+transactions. cosmos-sdk has no "max N transactions" allowance. If a grantee's fees come in
+under the limit, they can keep spending the remainder until it is gone. Size the grant to
+roughly one transaction's fee for genuinely single-use behaviour — the form says as much.
+
+### Recurring grants
+
+A **`PeriodicAllowance`**, which is what the design's "X SCRT / day" implies:
 
 - `period` — the window (hour, day, week or 30 days).
 - `period_spend_limit` — the most the grantee can spend on fees per window. Seeded into
@@ -80,9 +95,10 @@ Grants are created as a cosmos-sdk **`PeriodicAllowance`**, which is what the de
 The two summary cards aggregate across all grants:
 
 - **Current max spending** — the sum of every `period_spend_limit`, with the usage bar showing
-  `(limit − period_can_spend) / limit`.
-- **Total fee granted** — the sum of every lifetime cap. Grants with no cap are called out
-  separately rather than silently counted as zero.
+  `(limit − period_can_spend) / limit`. One-time grants have no period, so they are excluded
+  and noted beneath the figure rather than silently dropped.
+- **Total fee granted** — the sum of every lifetime cap, plus whatever is left on the one-time
+  grants. Grants with no cap are called out separately rather than counted as zero.
 
 ### Editing a grant
 

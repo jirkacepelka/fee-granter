@@ -41,14 +41,27 @@ export interface FeeGrant {
   allowedMessages?: string[];
 }
 
+/**
+ * What kind of allowance to create.
+ *
+ * - `periodic` - a budget that refills every period ("0.15 SCRT / day").
+ * - `oneshot`  - a fixed pot that never refills. x/feegrant deletes the grant
+ *   the moment it is used up, so the grantee cannot spend against it again.
+ */
+export type GrantKind = "periodic" | "oneshot";
+
 /** Values collected by the create / edit form. */
 export interface GrantInput {
   grantee: string;
-  /** Human decimal string, e.g. "0.15". */
-  periodLimit: string;
-  /** Period length in seconds. */
-  periodSeconds: number;
-  /** Optional lifetime cap as a human decimal string. Empty means uncapped. */
+  kind: GrantKind;
+  /**
+   * Human decimal string. The per-period limit for `periodic` grants, or the
+   * whole one-time budget for `oneshot` ones.
+   */
+  amount: string;
+  /** Period length in seconds. `periodic` only. */
+  periodSeconds?: number;
+  /** Optional lifetime cap as a human decimal string. `periodic` only. */
   totalLimit?: string;
   /** Optional expiry. */
   expiration?: Date;
@@ -199,23 +212,39 @@ function protoTimestamp(date: Date): { seconds: string; nanos: number } {
 }
 
 /**
- * Turn form values into a `PeriodicAllowance`.
+ * Turn form values into the allowance the chain should store.
  *
- * `period_can_spend` is seeded with the full period limit so the grantee can
- * spend immediately; the chain resets it every `period`.
+ * A `oneshot` grant is a plain `BasicAllowance`: a fixed pot with no period, so
+ * nothing ever refills it. `BasicAllowance.Accept` reports the grant as spent
+ * once the limit reaches zero and x/feegrant then deletes it, which is what
+ * makes it unusable a second time. Note that this bounds the *amount*, not the
+ * number of transactions - a grantee whose fees come in under the limit can
+ * keep spending the remainder. Size it to roughly one transaction's fee for
+ * genuinely single-use behaviour.
+ *
+ * A `periodic` grant seeds `period_can_spend` with the full period limit so the
+ * grantee can spend immediately; the chain resets it every `period`.
  */
 export function buildAllowance(input: GrantInput) {
-  const periodLimit = coins(toMicroUnits(input.periodLimit));
+  const amount = coins(toMicroUnits(input.amount));
+  const expiration = input.expiration
+    ? { expiration: protoTimestamp(input.expiration) }
+    : {};
+
+  if (input.kind === "oneshot") {
+    return { spend_limit: amount, ...expiration };
+  }
+
   const hasTotal = Boolean(input.totalLimit && input.totalLimit.trim() !== "");
 
   return {
     basic: {
       spend_limit: hasTotal ? coins(toMicroUnits(input.totalLimit!)) : [],
-      ...(input.expiration ? { expiration: protoTimestamp(input.expiration) } : {}),
+      ...expiration,
     },
-    period: { seconds: String(input.periodSeconds), nanos: 0 },
-    period_spend_limit: periodLimit,
-    period_can_spend: periodLimit,
+    period: { seconds: String(input.periodSeconds ?? 86_400), nanos: 0 },
+    period_spend_limit: amount,
+    period_can_spend: amount,
   };
 }
 
@@ -294,6 +323,10 @@ export interface GrantTotals {
   grantedTotal: bigint;
   /** True when at least one grant has no lifetime cap. */
   hasUncapped: boolean;
+  /** Number of one-time (BasicAllowance) grants outstanding. */
+  oneshotCount: number;
+  /** Base units still sitting on those one-time grants. */
+  oneshotTotal: bigint;
   /** The most common period across grants, used for the "/ day" label. */
   dominantPeriod?: number;
 }
@@ -303,6 +336,8 @@ export function summarise(grants: FeeGrant[]): GrantTotals {
   let periodUsed = 0n;
   let grantedTotal = 0n;
   let hasUncapped = false;
+  let oneshotCount = 0;
+  let oneshotTotal = 0n;
   const periodCounts = new Map<number, number>();
 
   for (const grant of grants) {
@@ -321,6 +356,11 @@ export function summarise(grants: FeeGrant[]): GrantTotals {
       hasUncapped = true;
     }
 
+    if (grant.kind === "basic") {
+      oneshotCount += 1;
+      if (grant.spendLimit) oneshotTotal += BigInt(grant.spendLimit);
+    }
+
     if (grant.periodSeconds) {
       periodCounts.set(grant.periodSeconds, (periodCounts.get(grant.periodSeconds) ?? 0) + 1);
     }
@@ -335,5 +375,13 @@ export function summarise(grants: FeeGrant[]): GrantTotals {
     }
   }
 
-  return { periodTotal, periodUsed, grantedTotal, hasUncapped, dominantPeriod };
+  return {
+    periodTotal,
+    periodUsed,
+    grantedTotal,
+    hasUncapped,
+    oneshotCount,
+    oneshotTotal,
+    dominantPeriod,
+  };
 }

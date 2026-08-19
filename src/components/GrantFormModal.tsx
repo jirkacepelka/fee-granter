@@ -4,7 +4,7 @@ import { CircleAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { DECIMALS, DISPLAY_DENOM } from "@/lib/chain";
-import type { FeeGrant, GrantInput } from "@/lib/feegrant";
+import type { FeeGrant, GrantInput, GrantKind } from "@/lib/feegrant";
 import { fromMicroUnits, isValidAddress } from "@/lib/format";
 
 import { Button } from "./Button";
@@ -20,6 +20,11 @@ export const PERIOD_OPTIONS = [
 
 const DEFAULT_PERIOD = 86_400;
 
+const GRANT_KINDS: Array<{ kind: GrantKind; label: string }> = [
+  { kind: "periodic", label: "Recurring" },
+  { kind: "oneshot", label: "One-time" },
+];
+
 interface GrantFormModalProps {
   open: boolean;
   /** Present when editing; absent when creating. */
@@ -31,7 +36,8 @@ interface GrantFormModalProps {
 
 interface FormState {
   grantee: string;
-  periodLimit: string;
+  kind: GrantKind;
+  amount: string;
   periodSeconds: number;
   totalLimit: string;
   expiration: string;
@@ -39,7 +45,8 @@ interface FormState {
 
 const EMPTY: FormState = {
   grantee: "",
-  periodLimit: "",
+  kind: "periodic",
+  amount: "",
   periodSeconds: DEFAULT_PERIOD,
   totalLimit: "",
   expiration: "",
@@ -47,11 +54,19 @@ const EMPTY: FormState = {
 
 function toFormState(grant: FeeGrant | undefined): FormState {
   if (!grant) return EMPTY;
+
+  // A stored BasicAllowance is exactly what this form calls a one-time grant,
+  // and its spend limit is the amount still left on it.
+  const oneshot = grant.kind === "basic";
+
   return {
     grantee: grant.grantee,
-    periodLimit: grant.periodSpendLimit ? fromMicroUnits(grant.periodSpendLimit) : "",
+    kind: oneshot ? "oneshot" : "periodic",
+    amount: oneshot
+      ? (grant.spendLimit ? fromMicroUnits(grant.spendLimit) : "")
+      : (grant.periodSpendLimit ? fromMicroUnits(grant.periodSpendLimit) : ""),
     periodSeconds: grant.periodSeconds ?? DEFAULT_PERIOD,
-    totalLimit: grant.spendLimit ? fromMicroUnits(grant.spendLimit) : "",
+    totalLimit: !oneshot && grant.spendLimit ? fromMicroUnits(grant.spendLimit) : "",
     expiration: grant.expiration ? grant.expiration.toISOString().slice(0, 10) : "",
   };
 }
@@ -67,16 +82,20 @@ function validate(form: FormState, isEdit: boolean): Partial<Record<keyof FormSt
     errors.grantee = "That is not a valid Secret Network address.";
   }
 
-  const limit = form.periodLimit.trim();
+  const limit = form.amount.trim();
   if (!limit) {
-    errors.periodLimit = "Set how much this address may spend per period.";
+    errors.amount =
+      form.kind === "oneshot"
+        ? "Set how much this one-time grant is worth."
+        : "Set how much this address may spend per period.";
   } else if (!AMOUNT_PATTERN.test(limit) || Number(limit) <= 0) {
-    errors.periodLimit = "Enter an amount greater than zero.";
+    errors.amount = "Enter an amount greater than zero.";
   } else if ((limit.split(".")[1] ?? "").length > DECIMALS) {
-    errors.periodLimit = `At most ${DECIMALS} decimal places.`;
+    errors.amount = `At most ${DECIMALS} decimal places.`;
   }
 
-  const total = form.totalLimit.trim();
+  // A one-time grant has no period to cap, so the lifetime cap does not apply.
+  const total = form.kind === "periodic" ? form.totalLimit.trim() : "";
   if (total) {
     if (!AMOUNT_PATTERN.test(total) || Number(total) <= 0) {
       errors.totalLimit = "Enter an amount greater than zero, or leave it empty.";
@@ -129,13 +148,22 @@ export function GrantFormModal({
     setTouched(true);
     if (hasErrors) return;
 
-    await onSubmit({
-      grantee: form.grantee.trim(),
-      periodLimit: form.periodLimit.trim(),
-      periodSeconds: form.periodSeconds,
-      totalLimit: form.totalLimit.trim() || undefined,
-      expiration: form.expiration ? new Date(`${form.expiration}T23:59:59Z`) : undefined,
-    });
+    const expiration = form.expiration
+      ? new Date(`${form.expiration}T23:59:59Z`)
+      : undefined;
+
+    await onSubmit(
+      form.kind === "oneshot"
+        ? { grantee: form.grantee.trim(), kind: "oneshot", amount: form.amount.trim(), expiration }
+        : {
+            grantee: form.grantee.trim(),
+            kind: "periodic",
+            amount: form.amount.trim(),
+            periodSeconds: form.periodSeconds,
+            totalLimit: form.totalLimit.trim() || undefined,
+            expiration,
+          },
+    );
   };
 
   const showError = (key: keyof FormState) => (touched ? errors[key] : undefined);
@@ -147,7 +175,7 @@ export function GrantFormModal({
       description={
         isEdit
           ? "Editing replaces the existing grant. The change is revoked and re-granted in a single transaction."
-          : "Cover another address's transaction fees on pulsar-3, up to a limit you set per period."
+          : "Cover another address's transaction fees on pulsar-3, up to a limit you set."
       }
       onClose={onClose}
       footer={
@@ -162,6 +190,30 @@ export function GrantFormModal({
       }
     >
       <form id="grant-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div className={styles.field}>
+          <span className={styles.label}>Grant type</span>
+          <div className={styles.segmented} role="group" aria-label="Grant type">
+            {GRANT_KINDS.map((option) => (
+              <button
+                key={option.kind}
+                type="button"
+                className={`${styles.segment} ${
+                  form.kind === option.kind ? styles.segmentActive : ""
+                }`}
+                aria-pressed={form.kind === option.kind}
+                onClick={() => update("kind", option.kind)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <span className={styles.hint}>
+            {form.kind === "oneshot"
+              ? "A fixed budget that never refills. Once spent, the grant is gone."
+              : "A budget that refills automatically at the start of every period."}
+          </span>
+        </div>
+
         <label className={styles.field}>
           <span className={styles.label}>Grantee address</span>
           <input
@@ -183,59 +235,74 @@ export function GrantFormModal({
         </label>
 
         <div className={styles.field}>
-          <span className={styles.label}>Spending limit per period</span>
+          <span className={styles.label}>
+            {form.kind === "oneshot" ? "Amount" : "Spending limit per period"}
+          </span>
           <div className={styles.split}>
             <div className={styles.inputWithSuffix}>
               <input
                 className={styles.input}
-                value={form.periodLimit}
-                onChange={(event) => update("periodLimit", event.target.value)}
-                placeholder="0.15"
+                value={form.amount}
+                onChange={(event) => update("amount", event.target.value)}
+                placeholder={form.kind === "oneshot" ? "0.05" : "0.15"}
                 inputMode="decimal"
                 autoComplete="off"
-                aria-label={`Spending limit in ${DISPLAY_DENOM}`}
-                aria-invalid={Boolean(showError("periodLimit"))}
+                aria-label={`Amount in ${DISPLAY_DENOM}`}
+                aria-invalid={Boolean(showError("amount"))}
               />
               <span className={styles.suffix}>{DISPLAY_DENOM}</span>
             </div>
-            <span className={styles.per}>per</span>
-            <select
-              className={styles.select}
-              value={form.periodSeconds}
-              onChange={(event) => update("periodSeconds", Number(event.target.value))}
-              aria-label="Period length"
-            >
-              {PERIOD_OPTIONS.map((option) => (
-                <option key={option.seconds} value={option.seconds}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {form.kind === "periodic" ? (
+              <>
+                <span className={styles.per}>per</span>
+                <select
+                  className={styles.select}
+                  value={form.periodSeconds}
+                  onChange={(event) => update("periodSeconds", Number(event.target.value))}
+                  aria-label="Period length"
+                >
+                  {PERIOD_OPTIONS.map((option) => (
+                    <option key={option.seconds} value={option.seconds}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
           </div>
-          <FieldError message={showError("periodLimit")} />
+          {form.kind === "oneshot" ? (
+            <span className={styles.hint}>
+              Covers fees until this much is spent, then the chain removes the grant. It never
+              refills. This caps the amount, not the number of transactions — set it to about
+              one transaction&apos;s fee for a genuinely single-use grant.
+            </span>
+          ) : null}
+          <FieldError message={showError("amount")} />
         </div>
 
-        <label className={styles.field}>
-          <span className={styles.label}>
-            Lifetime cap <span className={styles.optional}>optional</span>
-          </span>
-          <div className={styles.inputWithSuffix}>
-            <input
-              className={styles.input}
-              value={form.totalLimit}
-              onChange={(event) => update("totalLimit", event.target.value)}
-              placeholder="No cap"
-              inputMode="decimal"
-              autoComplete="off"
-              aria-invalid={Boolean(showError("totalLimit"))}
-            />
-            <span className={styles.suffix}>{DISPLAY_DENOM}</span>
-          </div>
-          <span className={styles.hint}>
-            Total this address may ever spend. Leave empty for no overall limit.
-          </span>
-          <FieldError message={showError("totalLimit")} />
-        </label>
+        {form.kind === "periodic" ? (
+          <label className={styles.field}>
+            <span className={styles.label}>
+              Lifetime cap <span className={styles.optional}>optional</span>
+            </span>
+            <div className={styles.inputWithSuffix}>
+              <input
+                className={styles.input}
+                value={form.totalLimit}
+                onChange={(event) => update("totalLimit", event.target.value)}
+                placeholder="No cap"
+                inputMode="decimal"
+                autoComplete="off"
+                aria-invalid={Boolean(showError("totalLimit"))}
+              />
+              <span className={styles.suffix}>{DISPLAY_DENOM}</span>
+            </div>
+            <span className={styles.hint}>
+              Total this address may ever spend. Leave empty for no overall limit.
+            </span>
+            <FieldError message={showError("totalLimit")} />
+          </label>
+        ) : null}
 
         <label className={styles.field}>
           <span className={styles.label}>

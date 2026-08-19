@@ -18,15 +18,15 @@ function endpointList(configured: string | undefined, fallbacks: string[]): stri
 }
 
 export const LCD_URLS = endpointList(process.env.NEXT_PUBLIC_SECRET_LCD_URL, [
-  "https://api.pulsar3.scrtlabs.com/api",
   "https://pulsar.lcd.secretnodes.com",
+  "https://api.pulsar3.scrtlabs.com/api",
   "https://lcd.testnet.secretsaturn.net",
   "https://api.pulsar.scrttestnet.com",
 ]);
 
 export const RPC_URLS = endpointList(process.env.NEXT_PUBLIC_SECRET_RPC_URL, [
-  "https://rpc.pulsar3.scrtlabs.com/rpc",
   "https://pulsar.rpc.secretnodes.com",
+  "https://rpc.pulsar3.scrtlabs.com/rpc",
   "https://rpc.testnet.secretsaturn.net",
 ]);
 

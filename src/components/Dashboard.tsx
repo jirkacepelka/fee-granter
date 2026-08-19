@@ -191,6 +191,13 @@ export function Dashboard() {
                 per={periodLabel}
                 size="lg"
               />
+              {totals.oneshotCount > 0 ? (
+                <p className={styles.cardNote}>
+                  Plus {pluralize(totals.oneshotCount, "one-time grant")} worth{" "}
+                  {formatAmount(totals.oneshotTotal.toString())} {DISPLAY_DENOM}, not counted
+                  here — they never recur.
+                </p>
+              ) : null}
               <Button
                 icon={<Ban size={16} aria-hidden />}
                 onClick={() => setSuspendOpen(true)}
