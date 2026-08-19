@@ -1,6 +1,6 @@
 import { fromBech32 } from "@cosmjs/encoding";
 
-import { BECH32_PREFIX, DECIMALS } from "./chain";
+import { BECH32_PREFIX, DECIMALS } from "./chains";
 
 /** Non-breaking space used as the thousands separator, matching the design. */
 const GROUP_SEPARATOR = " ";

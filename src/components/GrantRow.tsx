@@ -3,7 +3,7 @@
 import { CalendarClock, Check, Copy, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { DISPLAY_DENOM } from "@/lib/chain";
+import { DISPLAY_DENOM } from "@/lib/chains";
 import type { FeeGrant } from "@/lib/feegrant";
 import { formatAmount, formatDate, formatPeriod, truncateAddress } from "@/lib/format";
 

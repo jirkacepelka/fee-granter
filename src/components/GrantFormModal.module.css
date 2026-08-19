@@ -149,11 +149,30 @@
 }
 
 .segment:hover:not(.segmentActive) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-hover);
   color: var(--color-text);
 }
 
 .segmentActive {
   background: var(--color-accent);
-  color: var(--color-text);
+  color: #ffffff;
+}
+
+.capWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  border-radius: var(--radius-control);
+  background: rgba(255, 176, 32, 0.1);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-warning);
+}
+
+.capWarning svg {
+  margin-top: 1px;
+  flex-shrink: 0;
 }

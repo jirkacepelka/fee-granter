@@ -1,5 +1,3 @@
-import { CHAIN_ID } from "./chain";
-
 /**
  * Local record of grantees this browser has granted to.
  *
@@ -10,14 +8,14 @@ import { CHAIN_ID } from "./chain";
  * just a list of addresses worth checking.
  */
 
-function storageKey(granter: string): string {
-  return `fee-granter:grantees:${CHAIN_ID}:${granter}`;
+function storageKey(chainId: string, granter: string): string {
+  return `fee-granter:grantees:${chainId}:${granter}`;
 }
 
-function read(granter: string): string[] {
+function read(chainId: string, granter: string): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const stored = window.localStorage.getItem(storageKey(granter));
+    const stored = window.localStorage.getItem(storageKey(chainId, granter));
     if (!stored) return [];
     const parsed: unknown = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
@@ -26,35 +24,36 @@ function read(granter: string): string[] {
   }
 }
 
-function write(granter: string, grantees: string[]): void {
+function write(chainId: string, granter: string, grantees: string[]): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(storageKey(granter), JSON.stringify(grantees));
+    window.localStorage.setItem(storageKey(chainId, granter), JSON.stringify(grantees));
   } catch {
     // Storage may be unavailable (private mode, quota). Not worth failing over.
   }
 }
 
-export function listKnownGrantees(granter: string): string[] {
-  return read(granter);
+export function listKnownGrantees(chainId: string, granter: string): string[] {
+  return read(chainId, granter);
 }
 
-export function rememberGrantee(granter: string, grantee: string): void {
-  const known = read(granter);
+export function rememberGrantee(chainId: string, granter: string, grantee: string): void {
+  const known = read(chainId, granter);
   if (known.includes(grantee)) return;
-  write(granter, [...known, grantee]);
+  write(chainId, granter, [...known, grantee]);
 }
 
-export function forgetGrantee(granter: string, grantee: string): void {
+export function forgetGrantee(chainId: string, granter: string, grantee: string): void {
   write(
+    chainId,
     granter,
-    read(granter).filter((address) => address !== grantee),
+    read(chainId, granter).filter((address) => address !== grantee),
   );
 }
 
 /** Keep the local list in sync with whatever the chain reported. */
-export function syncKnownGrantees(granter: string, grantees: string[]): void {
-  const known = read(granter);
+export function syncKnownGrantees(chainId: string, granter: string, grantees: string[]): void {
+  const known = read(chainId, granter);
   const merged = [...new Set([...known, ...grantees])];
-  write(granter, merged);
+  write(chainId, granter, merged);
 }

@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { CHAIN_ID } from "@/lib/chain";
+import { useSettings } from "@/hooks/useSettings";
 import {
   describeNetworkError,
-  resetResolvedLcdUrl,
+  resetResolvedEndpoints,
   resolveLcdUrl,
 } from "@/lib/endpoint";
 import {
@@ -36,6 +36,8 @@ interface UseGrantsResult {
 }
 
 export function useGrants(granter: string | undefined): UseGrantsResult {
+  const { chain, activeLcdOverride } = useSettings();
+
   const [grants, setGrants] = useState<FeeGrant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
@@ -52,7 +54,7 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
 
     let client;
     try {
-      client = readonlyClient(await resolveLcdUrl(), CHAIN_ID);
+      client = readonlyClient(await resolveLcdUrl(chain, activeLcdOverride), chain.chainId);
     } catch (caught) {
       setError(describeNetworkError(caught));
       setLoading(false);
@@ -64,6 +66,7 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
       setGrants(fromChain);
       setSource("chain");
       syncKnownGrantees(
+        chain.chainId,
         granter,
         fromChain.map((grant) => grant.grantee),
       );
@@ -76,7 +79,7 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
 
       // Fall back to checking each grantee we have a local record of.
       try {
-        const known = listKnownGrantees(granter);
+        const known = listKnownGrantees(chain.chainId, granter);
         const results = await Promise.all(
           known.map((grantee) => queryGrant(client, granter, grantee)),
         );
@@ -88,14 +91,14 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
     } finally {
       setLoading(false);
     }
-  }, [granter]);
+  }, [granter, chain, activeLcdOverride]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   const retry = useCallback(async () => {
-    resetResolvedLcdUrl();
+    resetResolvedEndpoints();
     await refresh();
   }, [refresh]);
 

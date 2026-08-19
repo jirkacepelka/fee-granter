@@ -1,4 +1,4 @@
-import { DISPLAY_DENOM } from "@/lib/chain";
+import { DISPLAY_DENOM } from "@/lib/chains";
 import { formatAmount } from "@/lib/format";
 
 import styles from "./Amount.module.css";

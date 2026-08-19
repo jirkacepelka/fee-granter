@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 
 import { ToastProvider } from "@/components/Toast";
+import { SettingsProvider } from "@/hooks/useSettings";
 import { WalletProvider } from "@/hooks/useWallet";
 
 import "./globals.css";
@@ -20,16 +21,18 @@ const figtree = Figtree({
 export const metadata: Metadata = {
   title: "Fee Granter — Secret Network",
   description:
-    "Create, edit and revoke fee grants on the Secret Network pulsar-3 testnet.",
+    "Create, edit and revoke fee grants on Secret Network and the pulsar-3 testnet.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={figtree.variable}>
       <body>
-        <WalletProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </WalletProvider>
+        <SettingsProvider>
+          <WalletProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </WalletProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

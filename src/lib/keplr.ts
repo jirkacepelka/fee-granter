@@ -1,7 +1,7 @@
 import { SecretNetworkClient } from "secretjs";
 
-import { CHAIN_ID, KEPLR_CHAIN_INFO } from "./chain";
-import { resolveLcdUrl } from "./endpoint";
+import { keplrChainInfo, type ChainConfig } from "./chains";
+import { resolveLcdUrl, rpcUrlFor } from "./endpoint";
 
 /**
  * Minimal shape of the pieces of the Keplr API this app uses. Typing it here
@@ -13,7 +13,6 @@ interface KeplrWindow {
   getOfflineSigner(chainId: string): OfflineSigner;
   getOfflineSignerOnlyAmino(chainId: string): OfflineSigner;
   getEnigmaUtils?(chainId: string): unknown;
-  disable?(chainId: string): Promise<void>;
 }
 
 interface OfflineSigner {
@@ -44,52 +43,59 @@ export const KEPLR_ACCOUNT_CHANGE_EVENT = "keplr_keystorechange";
 export interface Connection {
   address: string;
   client: SecretNetworkClient;
+  lcdUrl: string;
 }
 
 /**
- * Connect to Keplr on pulsar-3.
+ * Connect to Keplr on the given chain.
  *
  * pulsar-3 is a testnet and is not in Keplr's built-in chain registry, so the
- * chain is suggested first. `getOfflineSigner` (rather than the amino-only
- * variant) is deliberate: it yields a direct-capable signer, which makes
- * secretjs sign with SIGN_MODE_DIRECT and encode allowance timestamps through
- * protobuf rather than its amino JSON path.
+ * chain is suggested when `enable` fails. `getOfflineSigner` (rather than the
+ * amino-only variant) is deliberate: it yields a direct-capable signer, which
+ * makes secretjs sign with SIGN_MODE_DIRECT and encode allowance timestamps
+ * through protobuf rather than its amino JSON path.
  */
-export async function connectKeplr(): Promise<Connection> {
+export async function connectKeplr(
+  chain: ChainConfig,
+  lcdOverride?: string,
+  rpcOverride?: string,
+): Promise<Connection> {
   const keplr = getKeplr();
   if (!keplr) throw new KeplrNotInstalledError();
 
   // Probe first: a dead LCD would otherwise surface as an opaque JSON parse
   // error from inside Keplr's own chain check.
-  const lcdUrl = await resolveLcdUrl();
+  const lcdUrl = await resolveLcdUrl(chain, lcdOverride);
 
   try {
-    await keplr.enable(CHAIN_ID);
+    await keplr.enable(chain.chainId);
   } catch {
     try {
-      await keplr.experimentalSuggestChain({ ...KEPLR_CHAIN_INFO, rest: lcdUrl });
+      await keplr.experimentalSuggestChain(
+        keplrChainInfo(chain, rpcUrlFor(chain, rpcOverride), lcdUrl),
+      );
     } catch (caught) {
       throw new Error(
-        `Keplr could not add ${CHAIN_ID}. Its RPC endpoint is likely down — set ` +
-          `NEXT_PUBLIC_SECRET_RPC_URL to a working node. (${
+        `Keplr could not add ${chain.chainId}. Its RPC endpoint is likely down — set a ` +
+          `different one in Settings. (${
             caught instanceof Error ? caught.message : String(caught)
           })`,
       );
     }
-    await keplr.enable(CHAIN_ID);
+    await keplr.enable(chain.chainId);
   }
 
-  const signer = keplr.getOfflineSigner(CHAIN_ID);
+  const signer = keplr.getOfflineSigner(chain.chainId);
   const [account] = await signer.getAccounts();
-  if (!account) throw new Error("Keplr returned no accounts for pulsar-3.");
+  if (!account) throw new Error(`Keplr returned no accounts for ${chain.chainId}.`);
 
   const client = new SecretNetworkClient({
     url: lcdUrl,
-    chainId: CHAIN_ID,
+    chainId: chain.chainId,
     wallet: signer as never,
     walletAddress: account.address,
-    encryptionUtils: keplr.getEnigmaUtils?.(CHAIN_ID) as never,
+    encryptionUtils: keplr.getEnigmaUtils?.(chain.chainId) as never,
   });
 
-  return { address: account.address, client };
+  return { address: account.address, client, lcdUrl };
 }

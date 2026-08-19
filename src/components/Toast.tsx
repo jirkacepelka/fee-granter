@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { explorerTxUrl } from "@/lib/chain";
+import { useSettings } from "@/hooks/useSettings";
+import { explorerTxUrl } from "@/lib/chains";
 
 import styles from "./Toast.module.css";
 
@@ -33,6 +34,7 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 let nextId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { chain } = useSettings();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const dismiss = useCallback((id: number) => {
@@ -78,7 +80,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               {toast.txHash ? (
                 <a
                   className={styles.link}
-                  href={explorerTxUrl(toast.txHash)}
+                  href={explorerTxUrl(chain, toast.txHash)}
                   target="_blank"
                   rel="noreferrer"
                 >

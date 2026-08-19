@@ -6,12 +6,7 @@ import {
   type TxResponse,
 } from "secretjs";
 
-import {
-  DENOM,
-  GAS_GRANT,
-  GAS_PRICE_USCRT,
-  GAS_REVOKE,
-} from "./chain";
+import { DENOM, GAS_GRANT, GAS_PRICE_USCRT, GAS_REVOKE } from "./chains";
 import { parseDurationSeconds, parseTimestamp, toMicroUnits } from "./format";
 
 export const PERIODIC_TYPE_URL = "/cosmos.feegrant.v1beta1.PeriodicAllowance";

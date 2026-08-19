@@ -1,12 +1,14 @@
 "use client";
 
-import { Ban, Info, Plus, RefreshCw, Wallet } from "lucide-react";
+import { Ban, Info, Plus, RefreshCw, TriangleAlert, Wallet } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { TxResponse } from "secretjs";
 
 import { useGrants } from "@/hooks/useGrants";
 import { useWallet } from "@/hooks/useWallet";
-import { CHAIN_ID, DISPLAY_DENOM } from "@/lib/chain";
+import { useSettings } from "@/hooks/useSettings";
+import { DISPLAY_DENOM } from "@/lib/chains";
+import { sendScrt } from "@/lib/bank";
 import {
   grantAllowance,
   revokeAll,
@@ -24,6 +26,7 @@ import {
   truncateAddress,
 } from "@/lib/format";
 import { forgetGrantee, rememberGrantee } from "@/lib/registry";
+import { toMicroUnits } from "@/lib/format";
 
 import { Amount } from "./Amount";
 import { Button } from "./Button";
@@ -34,7 +37,8 @@ import { GrantFormModal } from "./GrantFormModal";
 import { GrantRow } from "./GrantRow";
 import { UsageBar } from "./UsageBar";
 import { useToast } from "./Toast";
-import { WalletButton } from "./WalletButton";
+import { NetworkSwitcher } from "./NetworkSwitcher";
+import { WalletMenu } from "./WalletMenu";
 
 /** secretjs resolves broadcasts even when the chain rejected them. */
 function assertTxSuccess(tx: TxResponse): TxResponse {
@@ -50,7 +54,8 @@ function errorMessage(caught: unknown): string {
 }
 
 export function Dashboard() {
-  const { status, address, client, error: walletError } = useWallet();
+  const { status, address, client, error: walletError, refreshBalance } = useWallet();
+  const { chain, dailyCap } = useSettings();
   const { grants, loading, error, source, refresh, retry } = useGrants(address);
   const { notifySuccess, notifyError } = useToast();
 
@@ -63,6 +68,24 @@ export function Dashboard() {
   const totals = useMemo(() => summarise(grants), [grants]);
   const periodLabel = formatPeriod(totals.dominantPeriod ?? 86_400);
   const usage = percentUsed(totals.periodUsed, totals.periodTotal);
+
+  /**
+   * The self-imposed ceiling, in base units. This is a guard rail in this app
+   * only: x/feegrant has no account-wide budget, so it cannot be enforced
+   * on-chain and a grant made elsewhere can still exceed it.
+   */
+  const capMicro = useMemo(() => {
+    const raw = dailyCap.trim();
+    if (!raw) return undefined;
+    try {
+      const parsed = BigInt(toMicroUnits(raw));
+      return parsed > 0n ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [dailyCap]);
+
+  const overCap = capMicro !== undefined && totals.periodTotal > capMicro;
 
   /** Run a transaction, surface the outcome and reload the list. */
   const runTx = useCallback(
@@ -100,12 +123,12 @@ export function Dashboard() {
       );
 
       if (ok) {
-        rememberGrantee(address, input.grantee.trim());
+        rememberGrantee(chain.chainId, address, input.grantee.trim());
         setFormOpen(false);
         setEditing(undefined);
       }
     },
-    [client, address, editing, runTx],
+    [client, address, editing, runTx, chain.chainId],
   );
 
   const handleRevoke = useCallback(async () => {
@@ -118,10 +141,10 @@ export function Dashboard() {
     );
 
     if (ok) {
-      forgetGrantee(address, grantee);
+      forgetGrantee(chain.chainId, address, grantee);
       setRevoking(undefined);
     }
-  }, [client, address, revoking, runTx]);
+  }, [client, address, revoking, runTx, chain.chainId]);
 
   const handleSuspendAll = useCallback(async () => {
     if (!client || !address || grants.length === 0) return;
@@ -133,10 +156,22 @@ export function Dashboard() {
     );
 
     if (ok) {
-      grantees.forEach((grantee) => forgetGrantee(address, grantee));
+      grantees.forEach((grantee) => forgetGrantee(chain.chainId, address, grantee));
       setSuspendOpen(false);
     }
-  }, [client, address, grants, runTx]);
+  }, [client, address, grants, runTx, chain.chainId]);
+
+  const handleSend = useCallback(
+    async (to: string, amount: string, memo: string) => {
+      if (!client || !address) return;
+      await runTx(
+        () => sendScrt(client, address, to, amount, memo),
+        `Sent ${amount} ${DISPLAY_DENOM} to ${truncateAddress(to)}.`,
+      );
+      await refreshBalance();
+    },
+    [client, address, runTx, refreshBalance],
+  );
 
   const openCreate = () => {
     setEditing(undefined);
@@ -156,9 +191,9 @@ export function Dashboard() {
           <h1 className={styles.connectTitle}>Fee grants on Secret Network</h1>
           <p className={styles.connectCopy}>
             Connect your Keplr wallet to see who you are covering transaction fees for on{" "}
-            {CHAIN_ID}, and to create or edit grants.
+            {chain.chainId}, and to create or edit grants.
           </p>
-          <WalletButton />
+          <WalletMenu onSend={handleSend} sending={submitting} />
           {walletError ? (
             <p className={styles.connectError} role="alert">
               {walletError}
@@ -173,8 +208,8 @@ export function Dashboard() {
     <main className={styles.page}>
       <div className={styles.container}>
         <div className={styles.topBar}>
-          <span className={styles.network}>{CHAIN_ID}</span>
-          <WalletButton />
+          <NetworkSwitcher />
+          <WalletMenu onSend={handleSend} sending={submitting} />
         </div>
 
         <section className={styles.summary}>
@@ -191,6 +226,14 @@ export function Dashboard() {
                 per={periodLabel}
                 size="lg"
               />
+              {capMicro !== undefined ? (
+                <p className={overCap ? styles.cardWarning : styles.cardNote}>
+                  {overCap ? <TriangleAlert size={13} aria-hidden /> : null}
+                  {overCap ? "Over your " : "Your "}ceiling of{" "}
+                  {formatAmount(capMicro.toString())} {DISPLAY_DENOM} / day
+                  {overCap ? "" : ` · ${formatAmount((capMicro - totals.periodTotal).toString())} ${DISPLAY_DENOM} left`}
+                </p>
+              ) : null}
               {totals.oneshotCount > 0 ? (
                 <p className={styles.cardNote}>
                   Plus {pluralize(totals.oneshotCount, "one-time grant")} worth{" "}
@@ -293,6 +336,11 @@ export function Dashboard() {
       <GrantFormModal
         open={formOpen}
         grant={editing}
+        capWarning={
+          capMicro !== undefined && overCap
+            ? `Your grants already total ${formatAmount(totals.periodTotal.toString())} ${DISPLAY_DENOM} per ${periodLabel}, over your ${formatAmount(capMicro.toString())} ${DISPLAY_DENOM} ceiling. This app cannot stop the chain from honouring them — lower or revoke a grant to get back under it.`
+            : undefined
+        }
         submitting={submitting}
         onClose={() => {
           setFormOpen(false);

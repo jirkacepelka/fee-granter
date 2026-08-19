@@ -1,8 +1,9 @@
 # Fee Granter
 
-A fee grant dashboard for [Secret Network](https://scrt.network), currently targeting the
-**pulsar-3 testnet** only. Connect Keplr to see every address whose transaction fees you are
-covering, how much of each allowance is left, and create, edit or revoke grants.
+A fee grant dashboard for [Secret Network](https://scrt.network), covering both **secret-4**
+(mainnet) and the **pulsar-3 testnet**. Connect Keplr to see every address whose transaction
+fees you are covering, how much of each allowance is left, and create, edit or revoke grants.
+The wallet menu adds balance and price, deposit and send, and recent activity.
 
 Built from the Figma design in
 [`IVqCdSX1kvktVvdL0FZQaT`](https://www.figma.com/design/IVqCdSX1kvktVvdL0FZQaT/Untitled?node-id=0-1).
@@ -36,16 +37,22 @@ You will need testnet SCRT in the granting account — the
 Everything network-related is an environment variable, so you can point the app at a
 different node without touching code. See `.env.example`.
 
-| Variable | Default |
-| --- | --- |
-| `NEXT_PUBLIC_SECRET_LCD_URL` | `api.pulsar3.scrtlabs.com/api`, then three fallbacks |
-| `NEXT_PUBLIC_SECRET_RPC_URL` | `rpc.pulsar3.scrtlabs.com/rpc`, then two fallbacks |
-| `NEXT_PUBLIC_EXPLORER_TX_URL` | `https://testnet.ping.pub/secret/tx/{hash}` |
+| Variable | Chain | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SECRET_LCD_URL` | pulsar-3 | `pulsar.lcd.secretnodes.com` + fallbacks |
+| `NEXT_PUBLIC_SECRET_RPC_URL` | pulsar-3 | `pulsar.rpc.secretnodes.com` + fallbacks |
+| `NEXT_PUBLIC_SECRET_MAINNET_LCD_URL` | secret-4 | `lcd.mainnet.secretsaturn.net` + fallbacks |
+| `NEXT_PUBLIC_SECRET_MAINNET_RPC_URL` | secret-4 | `rpc.mainnet.secretsaturn.net` + fallbacks |
+| `NEXT_PUBLIC_EXPLORER_TX_URL` | pulsar-3 | ping.pub testnet |
+| `NEXT_PUBLIC_MAINNET_EXPLORER_TX_URL` | secret-4 | Mintscan |
+| `NEXT_PUBLIC_PRICE_API_URL` | — | Osmosis SQS |
 
-Public pulsar-3 nodes go down often. Both endpoint settings therefore take a
-**comma-separated list**: the app probes each in order and uses the first that answers with
-JSON *and* reports `pulsar-3`, so a dead node fails over instead of breaking the page. Set a
-single URL to pin one node.
+Public nodes go down often. Every endpoint setting takes a **comma-separated list**: the app
+probes each in order and uses the first that answers with JSON *and* reports the expected
+chain id, so a dead node fails over instead of breaking the page.
+
+Endpoints can also be overridden per chain at runtime from **Settings** in the app, which
+takes precedence over these.
 
 ### When a node is down
 
@@ -59,11 +66,40 @@ Could not reach a working pulsar-3 node.
   • https://api.pulsar3.scrtlabs.com/api — returned an HTML page, not JSON (HTTP 502)
   • https://pulsar.lcd.secretnodes.com — unreachable (network error or CORS blocked)
 
-Set NEXT_PUBLIC_SECRET_LCD_URL to a node you trust and reload.
+Set a different endpoint in Settings and try again.
 ```
 
 The RPC endpoint is only handed to Keplr, which checks it itself during the chain
 suggestion, so a dead RPC surfaces at connect time and is reported separately.
+
+## Wallet menu
+
+Balance comes from `x/bank`. The USD value comes from the
+[Osmosis price API](https://docs.osmosis.zone/integrate/prices/), keyed by SCRT's IBC denom;
+testnet SCRT has no market, so pulsar-3 shows "No price" rather than a fabricated number, and
+a feed that is down or answers in an unexpected shape shows "Price unavailable" rather than a
+wrong figure.
+
+**Deposit** renders the address as an inline SVG QR code. **Send** is a plain `MsgSend`, with
+a Max button that leaves enough behind to cover the fee.
+
+**Activity** is limited to what this app is about: SCRT in, SCRT out, and fee grants being
+spent. Cosmos exposes this only as an indexed event search (`transfer.sender`,
+`transfer.recipient`, `use_feegrant.granter`), and the query parameter changed across SDK
+versions, so both `query=` and `events=` are tried. A node configured not to index will
+legitimately return nothing — the UI says "No activity found" rather than claiming there is
+none.
+
+## Settings
+
+- **Appearance** — dark, light, or follow the system.
+- **Endpoints** — per-chain LCD and RPC overrides.
+- **Daily spending ceiling** — a budget you set for yourself, shown above the figure
+  calculated from your grants, with a warning when your grants exceed it.
+
+  This is a guard rail in this app, **not a chain rule**. x/feegrant has no account-wide
+  budget, so nothing stops a grant created elsewhere — or the chain itself — from going over
+  it. It is a reminder, not an enforcement mechanism.
 
 ## How fee grants are modelled
 
@@ -155,6 +191,6 @@ src/
 
 ## Status
 
-Not yet implemented: mainnet (`secret-4`) support, wallets other than Keplr,
+Not yet implemented: wallets other than Keplr,
 `AllowedMsgAllowance` creation (existing ones are displayed and can be revoked), and
 grant history.
