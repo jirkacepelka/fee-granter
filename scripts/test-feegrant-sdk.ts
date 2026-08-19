@@ -66,6 +66,15 @@ check("select rejects an unusable granter",
 check("select with no granter", selectFeeGrant(shuffled, { mode: "select", fee }).reason, "granter-not-given");
 check("off pays from the wallet", selectFeeGrant(shuffled, { mode: "off", fee }).granter, undefined);
 
+// A grant is preferred over own funds by default: mode may be omitted, and the
+// wallet's balance is never a factor.
+check("mode defaults to auto", selectFeeGrant(shuffled, { fee }).granter, "g1");
+check("default matches explicit auto",
+  selectFeeGrant(shuffled, { fee }).granter,
+  selectFeeGrant(shuffled, { mode: "auto", fee }).granter);
+check("default falls back to self-paying when nothing fits",
+  selectFeeGrant([tooSmall], { fee }).granter, undefined);
+
 // --- parsing straight from LCD proto3 JSON ---
 const parsed = parseFeeGrant({ granter: "gA", grantee: "me", allowance: {
   "@type": "/cosmos.feegrant.v1beta1.PeriodicAllowance",

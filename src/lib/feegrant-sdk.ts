@@ -289,14 +289,15 @@ export function rankFeeGrants(grants: FeeGrant[], context: UsabilityContext): Fe
 }
 
 /**
- * - `auto`   — pick the best usable grant automatically.
+ * - `auto`   — pick the best usable grant automatically. The default.
  * - `select` — use the grant from `granter`, if it can pay.
  * - `off`    — pay from the wallet's own balance.
  */
 export type SelectionMode = "auto" | "select" | "off";
 
 export interface SelectOptions extends UsabilityContext {
-  mode: SelectionMode;
+  /** Defaults to `auto`: spend a grant whenever one can cover the fee. */
+  mode?: SelectionMode;
   /** Required when mode is `select`. */
   granter?: string;
 }
@@ -318,13 +319,20 @@ export interface Selection {
  *
  * Nothing here talks to a chain: pass in the grants from `fetchFeeGrants` and
  * the fee the transaction will pay, and take `granter` from the result.
+ *
+ * A grant is preferred over the wallet's own funds whenever one can cover the
+ * fee - that is what `auto` means, and it is the default. The wallet's balance
+ * is never consulted: a grant wins even when the wallet could easily pay for
+ * itself, because the granter created the grant precisely so it would be used.
+ * Pass `mode: "off"` to spend your own funds instead.
  */
 export function selectFeeGrant(grants: FeeGrant[], options: SelectOptions): Selection {
   const candidates = rankFeeGrants(grants, options);
+  const mode = options.mode ?? "auto";
 
-  if (options.mode === "off") return { reason: "off", candidates };
+  if (mode === "off") return { reason: "off", candidates };
 
-  if (options.mode === "select") {
+  if (mode === "select") {
     if (!options.granter) return { reason: "granter-not-given", candidates };
     const chosen = grants.find((grant) => grant.granter === options.granter);
     const rejected = chosen ? checkUsable(chosen, options) : undefined;

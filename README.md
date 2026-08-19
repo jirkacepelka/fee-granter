@@ -31,7 +31,7 @@ You will need testnet SCRT in the granting account — the
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run test:sdk` | Fee grant selection tests (plain Node, no bundler) |
+| `npm run test:sdk` | Fee grant selection tests — 27 checks, plain Node, no bundler |
 
 ## Configuration
 
@@ -185,7 +185,7 @@ against, and picking one. Building and signing the transaction stays with whatev
 already use. All the SDK produces is the address to put in `auth_info.fee.granter`.
 
 ```bash
-npm run test:sdk   # 24 checks, plain Node, no bundler
+npm run test:sdk   # 27 checks, plain Node, no bundler
 ```
 
 ### The three-line version
@@ -195,7 +195,7 @@ import { fetchFeeGrants, selectFeeGrant, estimateFee } from "./feegrant-sdk";
 
 const grants = await fetchFeeGrants(LCD_URL, myAddress);
 const { granter } = selectFeeGrant(grants, {
-  mode: "auto",
+  // mode defaults to "auto" — spend a grant whenever one can cover the fee
   fee: estimateFee(gasLimit, gasPrice),
   msgTypeUrls: ["/cosmos.bank.v1beta1.MsgSend"],
 });
@@ -206,7 +206,10 @@ await client.tx.bank.send(msg, { gasLimit, feeGranter: granter });
 
 ### Two modes
 
-**`auto`** picks the best grant that can cover the fee, ranked:
+**`auto`** is the default, and prefers a grant over the wallet's own funds whenever one can
+cover the fee. The wallet's balance is never consulted — a grant wins even when the wallet
+could comfortably pay for itself, because the granter created the grant precisely so it would
+be used. It picks the best covering grant, ranked:
 
 1. **Recurring before one-time.** A periodic grant refills, so spending it costs the granter
    less than burning a one-time grant outright.
@@ -237,7 +240,9 @@ if (!choice.granter) {
 Use `choice.candidates` — every grant that could pay, best first — to build the picker itself,
 so you never offer a grant the chain would reject.
 
-**`off`** skips grants entirely and pays from the wallet's own balance.
+**`off`** skips grants entirely and pays from the wallet's own balance. This is the only way
+to *not* use a grant: there is no "only when I am short" mode, because a fee grant is a
+standing offer, not a last resort.
 
 ### What gets filtered out
 
@@ -259,7 +264,7 @@ then fails.
 | --- | --- |
 | `fetchFeeGrants(lcdUrl, grantee, opts?)` | Grants this address may spend against |
 | `parseFeeGrant(raw, denom?)` | Normalise one LCD allowance if you fetch it yourself |
-| `selectFeeGrant(grants, opts)` | Pick a granter — `auto`, `select` or `off` |
+| `selectFeeGrant(grants, opts)` | Pick a granter — `auto` (default), `select` or `off` |
 | `rankFeeGrants(grants, ctx)` | Every usable grant, best first |
 | `compareGrants(a, b)` | The comparator, if you want a different order |
 | `checkUsable(grant, ctx)` / `isUsable(...)` | Why one grant cannot pay |
