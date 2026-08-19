@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { SecretNetworkClient } from "secretjs";
 
+import { describeNetworkError } from "@/lib/endpoint";
 import {
   connectKeplr,
   getKeplr,
@@ -58,7 +59,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setKeplrInstalled(false);
         setError("Keplr is not installed in this browser.");
       } else {
-        setError(caught instanceof Error ? caught.message : String(caught));
+        setError(describeNetworkError(caught));
       }
     }
   }, []);

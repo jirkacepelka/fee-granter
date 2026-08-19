@@ -3,11 +3,36 @@
 export const CHAIN_ID = "pulsar-3";
 export const CHAIN_NAME = "Secret Testnet";
 
-export const LCD_URL =
-  process.env.NEXT_PUBLIC_SECRET_LCD_URL ?? "https://api.pulsar3.scrtlabs.com/api";
+/**
+ * Public pulsar-3 nodes are frequently down or behind a gateway that answers
+ * with an HTML error page. Both settings therefore take a comma-separated list
+ * and the app uses the first entry that actually answers with JSON for
+ * pulsar-3. Set a single URL to pin one node.
+ */
+function endpointList(configured: string | undefined, fallbacks: string[]): string[] {
+  const parsed = (configured ?? "")
+    .split(",")
+    .map((url) => url.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+  return parsed.length > 0 ? parsed : fallbacks;
+}
 
-export const RPC_URL =
-  process.env.NEXT_PUBLIC_SECRET_RPC_URL ?? "https://rpc.pulsar3.scrtlabs.com/rpc";
+export const LCD_URLS = endpointList(process.env.NEXT_PUBLIC_SECRET_LCD_URL, [
+  "https://api.pulsar3.scrtlabs.com/api",
+  "https://pulsar.lcd.secretnodes.com",
+  "https://lcd.testnet.secretsaturn.net",
+  "https://api.pulsar.scrttestnet.com",
+]);
+
+export const RPC_URLS = endpointList(process.env.NEXT_PUBLIC_SECRET_RPC_URL, [
+  "https://rpc.pulsar3.scrtlabs.com/rpc",
+  "https://pulsar.rpc.secretnodes.com",
+  "https://rpc.testnet.secretsaturn.net",
+]);
+
+/** First configured endpoint, used before probing resolves a live one. */
+export const LCD_URL = LCD_URLS[0];
+export const RPC_URL = RPC_URLS[0];
 
 const EXPLORER_TX_TEMPLATE =
   process.env.NEXT_PUBLIC_EXPLORER_TX_URL ?? "https://testnet.ping.pub/secret/tx/{hash}";

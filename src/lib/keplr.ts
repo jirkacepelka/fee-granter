@@ -1,6 +1,7 @@
 import { SecretNetworkClient } from "secretjs";
 
-import { CHAIN_ID, KEPLR_CHAIN_INFO, LCD_URL } from "./chain";
+import { CHAIN_ID, KEPLR_CHAIN_INFO } from "./chain";
+import { resolveLcdUrl } from "./endpoint";
 
 /**
  * Minimal shape of the pieces of the Keplr API this app uses. Typing it here
@@ -58,10 +59,23 @@ export async function connectKeplr(): Promise<Connection> {
   const keplr = getKeplr();
   if (!keplr) throw new KeplrNotInstalledError();
 
+  // Probe first: a dead LCD would otherwise surface as an opaque JSON parse
+  // error from inside Keplr's own chain check.
+  const lcdUrl = await resolveLcdUrl();
+
   try {
     await keplr.enable(CHAIN_ID);
   } catch {
-    await keplr.experimentalSuggestChain(KEPLR_CHAIN_INFO);
+    try {
+      await keplr.experimentalSuggestChain({ ...KEPLR_CHAIN_INFO, rest: lcdUrl });
+    } catch (caught) {
+      throw new Error(
+        `Keplr could not add ${CHAIN_ID}. Its RPC endpoint is likely down — set ` +
+          `NEXT_PUBLIC_SECRET_RPC_URL to a working node. (${
+            caught instanceof Error ? caught.message : String(caught)
+          })`,
+      );
+    }
     await keplr.enable(CHAIN_ID);
   }
 
@@ -70,7 +84,7 @@ export async function connectKeplr(): Promise<Connection> {
   if (!account) throw new Error("Keplr returned no accounts for pulsar-3.");
 
   const client = new SecretNetworkClient({
-    url: LCD_URL,
+    url: lcdUrl,
     chainId: CHAIN_ID,
     wallet: signer as never,
     walletAddress: account.address,

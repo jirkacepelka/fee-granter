@@ -50,8 +50,8 @@ function errorMessage(caught: unknown): string {
 }
 
 export function Dashboard() {
-  const { status, address, client } = useWallet();
-  const { grants, loading, error, source, refresh } = useGrants(address);
+  const { status, address, client, error: walletError } = useWallet();
+  const { grants, loading, error, source, refresh, retry } = useGrants(address);
   const { notifySuccess, notifyError } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -159,6 +159,11 @@ export function Dashboard() {
             {CHAIN_ID}, and to create or edit grants.
           </p>
           <WalletButton />
+          {walletError ? (
+            <p className={styles.connectError} role="alert">
+              {walletError}
+            </p>
+          ) : null}
         </div>
       </main>
     );
@@ -243,7 +248,7 @@ export function Dashboard() {
           {error ? (
             <div className={styles.errorPanel}>
               <p>{error}</p>
-              <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+              <Button variant="ghost" size="sm" onClick={() => void retry()}>
                 Try again
               </Button>
             </div>

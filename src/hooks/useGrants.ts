@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { CHAIN_ID, LCD_URL } from "@/lib/chain";
+import { CHAIN_ID } from "@/lib/chain";
+import {
+  describeNetworkError,
+  resetResolvedLcdUrl,
+  resolveLcdUrl,
+} from "@/lib/endpoint";
 import {
   GranterQueryUnsupported,
   queryGrant,
@@ -26,6 +31,8 @@ interface UseGrantsResult {
   error?: string;
   source: GrantSource;
   refresh: () => Promise<void>;
+  /** Re-probe the endpoint list before reloading. Use after a network error. */
+  retry: () => Promise<void>;
 }
 
 export function useGrants(granter: string | undefined): UseGrantsResult {
@@ -42,7 +49,15 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
 
     setLoading(true);
     setError(undefined);
-    const client = readonlyClient(LCD_URL, CHAIN_ID);
+
+    let client;
+    try {
+      client = readonlyClient(await resolveLcdUrl(), CHAIN_ID);
+    } catch (caught) {
+      setError(describeNetworkError(caught));
+      setLoading(false);
+      return;
+    }
 
     try {
       const fromChain = await queryGrantsByGranter(client, granter);
@@ -54,7 +69,7 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
       );
     } catch (caught) {
       if (!(caught instanceof GranterQueryUnsupported)) {
-        setError(caught instanceof Error ? caught.message : String(caught));
+        setError(describeNetworkError(caught));
         setLoading(false);
         return;
       }
@@ -68,9 +83,7 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
         setGrants(results.filter((grant): grant is FeeGrant => grant !== undefined));
         setSource("local");
       } catch (fallbackError) {
-        setError(
-          fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-        );
+        setError(describeNetworkError(fallbackError));
       }
     } finally {
       setLoading(false);
@@ -81,5 +94,10 @@ export function useGrants(granter: string | undefined): UseGrantsResult {
     void refresh();
   }, [refresh]);
 
-  return { grants, loading, error, source, refresh };
+  const retry = useCallback(async () => {
+    resetResolvedLcdUrl();
+    await refresh();
+  }, [refresh]);
+
+  return { grants, loading, error, source, refresh, retry };
 }

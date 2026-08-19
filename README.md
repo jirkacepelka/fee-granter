@@ -38,12 +38,32 @@ different node without touching code. See `.env.example`.
 
 | Variable | Default |
 | --- | --- |
-| `NEXT_PUBLIC_SECRET_LCD_URL` | `https://api.pulsar3.scrtlabs.com/api` |
-| `NEXT_PUBLIC_SECRET_RPC_URL` | `https://rpc.pulsar3.scrtlabs.com/rpc` |
+| `NEXT_PUBLIC_SECRET_LCD_URL` | `api.pulsar3.scrtlabs.com/api`, then three fallbacks |
+| `NEXT_PUBLIC_SECRET_RPC_URL` | `rpc.pulsar3.scrtlabs.com/rpc`, then two fallbacks |
 | `NEXT_PUBLIC_EXPLORER_TX_URL` | `https://testnet.ping.pub/secret/tx/{hash}` |
 
-Public testnet endpoints go down fairly often. If queries start failing, swap the LCD URL for
-one of the alternates listed in `.env.example`.
+Public pulsar-3 nodes go down often. Both endpoint settings therefore take a
+**comma-separated list**: the app probes each in order and uses the first that answers with
+JSON *and* reports `pulsar-3`, so a dead node fails over instead of breaking the page. Set a
+single URL to pin one node.
+
+### When a node is down
+
+A dead node usually still answers at the HTTP level — a gateway returns an HTML error page.
+Parsing that as JSON is what produces `Unexpected token '<', "<!DOCTYPE "... is not valid
+JSON`, an error that says nothing about the real cause. The app checks the response body
+rather than the status code, and reports which nodes it tried and what each returned:
+
+```
+Could not reach a working pulsar-3 node.
+  • https://api.pulsar3.scrtlabs.com/api — returned an HTML page, not JSON (HTTP 502)
+  • https://pulsar.lcd.secretnodes.com — unreachable (network error or CORS blocked)
+
+Set NEXT_PUBLIC_SECRET_LCD_URL to a node you trust and reload.
+```
+
+The RPC endpoint is only handed to Keplr, which checks it itself during the chain
+suggestion, so a dead RPC surfaces at connect time and is reported separately.
 
 ## How fee grants are modelled
 
