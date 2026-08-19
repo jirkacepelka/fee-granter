@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:sdk": "node --experimental-strip-types scripts/test-feegrant-sdk.ts"
   },
   "dependencies": {
     "@cosmjs/encoding": "^0.32.4",

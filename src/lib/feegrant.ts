@@ -7,34 +7,23 @@ import {
 } from "secretjs";
 
 import { DENOM, GAS_GRANT, GAS_PRICE_USCRT, GAS_REVOKE } from "./chains";
-import { parseDurationSeconds, parseTimestamp, toMicroUnits } from "./format";
+import {
+  availableFee,
+  isUsable,
+  parseFeeGrant,
+  type FeeGrant,
+} from "./feegrant-sdk";
+import { toMicroUnits } from "./format";
 
-export const PERIODIC_TYPE_URL = "/cosmos.feegrant.v1beta1.PeriodicAllowance";
-export const BASIC_TYPE_URL = "/cosmos.feegrant.v1beta1.BasicAllowance";
-export const ALLOWED_MSG_TYPE_URL = "/cosmos.feegrant.v1beta1.AllowedMsgAllowance";
-
-export type AllowanceKind = "basic" | "periodic";
-
-/** A fee grant, normalised from whichever allowance type the chain returned. */
-export interface FeeGrant {
-  granter: string;
-  grantee: string;
-  kind: AllowanceKind;
-  /** Base units the grantee may spend per period. Undefined for basic grants. */
-  periodSpendLimit?: string;
-  /** Length of a period in seconds. Undefined for basic grants. */
-  periodSeconds?: number;
-  /** Base units still spendable in the current period. */
-  periodCanSpend?: string;
-  /** When the current period rolls over. Set by the chain after first use. */
-  periodReset?: Date;
-  /** Lifetime cap in base units. Undefined means uncapped. */
-  spendLimit?: string;
-  /** When the grant expires. Undefined means no expiry. */
-  expiration?: Date;
-  /** Present when the grant is wrapped in an AllowedMsgAllowance. */
-  allowedMessages?: string[];
-}
+export {
+  ALLOWED_MSG_TYPE_URL,
+  BASIC_TYPE_URL,
+  PERIODIC_TYPE_URL,
+  availableFee,
+  parseFeeGrant as parseGrant,
+  type AllowanceKind,
+  type FeeGrant,
+} from "./feegrant-sdk";
 
 /**
  * What kind of allowance to create.
@@ -60,86 +49,6 @@ export interface GrantInput {
   totalLimit?: string;
   /** Optional expiry. */
   expiration?: Date;
-}
-
-type Coin = { denom: string; amount: string };
-
-interface RawAny {
-  "@type"?: string;
-  type_url?: string;
-  [key: string]: unknown;
-}
-
-function coinAmount(coins: unknown, denom = DENOM): string | undefined {
-  if (!Array.isArray(coins)) return undefined;
-  const match = (coins as Coin[]).find((coin) => coin?.denom === denom);
-  return match?.amount;
-}
-
-function typeUrlOf(allowance: RawAny | undefined): string {
-  return (allowance?.["@type"] ?? allowance?.type_url ?? "") as string;
-}
-
-/**
- * Unwrap an AllowedMsgAllowance so the inner basic/periodic allowance can be
- * read, remembering which messages the grant was restricted to.
- */
-function unwrap(allowance: RawAny | undefined): {
-  inner: RawAny | undefined;
-  allowedMessages?: string[];
-} {
-  if (typeUrlOf(allowance) === ALLOWED_MSG_TYPE_URL) {
-    return {
-      inner: allowance?.allowance as RawAny | undefined,
-      allowedMessages: (allowance?.allowed_messages as string[] | undefined) ?? [],
-    };
-  }
-  return { inner: allowance };
-}
-
-/** Normalise one raw grant from the LCD into a `FeeGrant`. */
-export function parseGrant(raw: {
-  granter?: string;
-  grantee?: string;
-  allowance?: unknown;
-}): FeeGrant | undefined {
-  if (!raw.granter || !raw.grantee) return undefined;
-
-  const { inner, allowedMessages } = unwrap(raw.allowance as RawAny | undefined);
-  if (!inner) return undefined;
-
-  const base: Pick<FeeGrant, "granter" | "grantee" | "allowedMessages"> = {
-    granter: raw.granter,
-    grantee: raw.grantee,
-    allowedMessages: allowedMessages?.length ? allowedMessages : undefined,
-  };
-
-  const typeUrl = typeUrlOf(inner);
-
-  if (typeUrl === PERIODIC_TYPE_URL) {
-    const basic = (inner.basic ?? {}) as RawAny;
-    return {
-      ...base,
-      kind: "periodic",
-      periodSpendLimit: coinAmount(inner.period_spend_limit),
-      periodSeconds: parseDurationSeconds(inner.period),
-      periodCanSpend: coinAmount(inner.period_can_spend),
-      periodReset: parseTimestamp(inner.period_reset),
-      spendLimit: coinAmount(basic.spend_limit),
-      expiration: parseTimestamp(basic.expiration),
-    };
-  }
-
-  if (typeUrl === BASIC_TYPE_URL) {
-    return {
-      ...base,
-      kind: "basic",
-      spendLimit: coinAmount(inner.spend_limit),
-      expiration: parseTimestamp(inner.expiration),
-    };
-  }
-
-  return undefined;
 }
 
 /** Build the read-only client used for every query. */
@@ -172,7 +81,7 @@ export async function queryGrantsByGranter(
       pagination: { limit: "500" },
     });
     return (response.allowances ?? [])
-      .map(parseGrant)
+      .map((grant) => parseFeeGrant(grant))
       .filter((grant): grant is FeeGrant => grant !== undefined);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -198,7 +107,7 @@ export async function queryGrantsByGrantee(
     pagination: { limit: "100" },
   });
   return (response.allowances ?? [])
-    .map(parseGrant)
+    .map((grant) => parseFeeGrant(grant))
     .filter((grant): grant is FeeGrant => grant !== undefined);
 }
 
@@ -207,18 +116,12 @@ export async function queryGrantsByGrantee(
  * `undefined` means uncapped.
  */
 export function availableNow(grant: FeeGrant): string | undefined {
-  if (grant.kind === "periodic") return grant.periodCanSpend ?? grant.periodSpendLimit;
-  return grant.spendLimit;
+  return availableFee(grant)?.toString();
 }
 
-/** Grants that have not expired and still have something left on them. */
+/** Grants that have not expired and can still cover at least one base unit. */
 export function usableGrants(grants: FeeGrant[]): FeeGrant[] {
-  const now = Date.now();
-  return grants.filter((grant) => {
-    if (grant.expiration && grant.expiration.getTime() < now) return false;
-    const available = availableNow(grant);
-    return available === undefined || BigInt(available) > 0n;
-  });
+  return grants.filter((grant) => isUsable(grant, { fee: 1n }));
 }
 
 /** Look up a single granter -> grantee grant. Returns undefined when absent. */
@@ -229,12 +132,14 @@ export async function queryGrant(
 ): Promise<FeeGrant | undefined> {
   try {
     const response = await client.query.feegrant.allowance({ granter, grantee });
-    return response.allowance ? parseGrant(response.allowance) : undefined;
+    return response.allowance ? parseFeeGrant(response.allowance) : undefined;
   } catch {
     // A missing grant surfaces as a 404/NotFound - treat it as "no grant".
     return undefined;
   }
 }
+
+type Coin = { denom: string; amount: string };
 
 function coins(amount: string): Coin[] {
   return [{ denom: DENOM, amount }];

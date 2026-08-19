@@ -31,6 +31,7 @@ You will need testnet SCRT in the granting account — the
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:sdk` | Fee grant selection tests (plain Node, no bundler) |
 
 ## Configuration
 
@@ -167,13 +168,115 @@ wallet may spend against and sets `fee.granter` accordingly. The wallet menu als
 many grants can cover the connected wallet, so a grant made to your own second wallet can be
 confirmed from the receiving side.
 
-Three things make the chain reject an otherwise valid grant at spend time:
+The selector offers **Auto**, **Choose** and **This wallet**, all three backed by the same
+selection logic described in [Using fee grants in your own app](#using-fee-grants-in-your-own-app).
 
-- The fee exceeds what is left in the current period, or the lifetime cap.
-- The grant has expired.
-- The grantee's account does not exist on chain yet. An account is only created when it first
-  receives coins, and a grant does not create one, so a brand-new address needs a small
-  deposit before it can sign anything.
+One rejection the SDK cannot filter out: a grantee account that does not exist on chain yet.
+Accounts are created by receiving coins, and a grant does not create one, so a brand-new
+address needs a small deposit before it can sign anything.
+
+## Using fee grants in your own app
+
+`src/lib/feegrant-sdk.ts` is a standalone module — no React, no secretjs, no imports from the
+rest of this app. Copy the single file into your project and it works anywhere `fetch` does.
+
+It covers the read-and-choose half of `x/feegrant`: finding which grants an address may spend
+against, and picking one. Building and signing the transaction stays with whatever library you
+already use. All the SDK produces is the address to put in `auth_info.fee.granter`.
+
+```bash
+npm run test:sdk   # 24 checks, plain Node, no bundler
+```
+
+### The three-line version
+
+```ts
+import { fetchFeeGrants, selectFeeGrant, estimateFee } from "./feegrant-sdk";
+
+const grants = await fetchFeeGrants(LCD_URL, myAddress);
+const { granter } = selectFeeGrant(grants, {
+  mode: "auto",
+  fee: estimateFee(gasLimit, gasPrice),
+  msgTypeUrls: ["/cosmos.bank.v1beta1.MsgSend"],
+});
+
+// granter is undefined when nothing suitable exists — then you pay your own fee.
+await client.tx.bank.send(msg, { gasLimit, feeGranter: granter });
+```
+
+### Two modes
+
+**`auto`** picks the best grant that can cover the fee, ranked:
+
+1. **Recurring before one-time.** A periodic grant refills, so spending it costs the granter
+   less than burning a one-time grant outright.
+2. **More left over less.** Maximises the chance the fee fits, and leaves headroom.
+3. **Shorter period over longer.** Between two grants with the same balance, the one that
+   refills sooner is cheaper to draw down.
+4. Granter address, so the order is stable across calls.
+
+Given these grants, `auto` picks `A` and `rankFeeGrants` returns them in this order:
+
+| | Grant | Left | Cadence |
+| --- | --- | --- | --- |
+| 1 | A | 12 SCRT | every 15 min |
+| 2 | C | 12 SCRT | every day |
+| 3 | B | 5 SCRT | every 15 min |
+| 4 | D | 120 SCRT | one-time |
+| 5 | E | 10 SCRT | one-time |
+
+**`select`** uses the grant you name, and tells you if it cannot pay:
+
+```ts
+const choice = selectFeeGrant(grants, { mode: "select", granter: picked, fee });
+if (!choice.granter) {
+  // choice.rejected is "expired" | "insufficient" | "message-not-allowed"
+}
+```
+
+Use `choice.candidates` — every grant that could pay, best first — to build the picker itself,
+so you never offer a grant the chain would reject.
+
+**`off`** skips grants entirely and pays from the wallet's own balance.
+
+### What gets filtered out
+
+`checkUsable` rejects a grant, and `rankFeeGrants` drops it, when:
+
+| Reason | Meaning |
+| --- | --- |
+| `expired` | `expiration` has passed |
+| `insufficient` | less left than the fee — including the lifetime cap, which the chain applies on top of the period balance |
+| `message-not-allowed` | an `AllowedMsgAllowance` that does not cover every message in your transaction |
+
+Pass the **same** gas limit and gas price you give your signing library. Estimating a smaller
+fee than you actually pay is the one way to have a grant judged able to cover a transaction it
+then fails.
+
+### API
+
+| Export | Purpose |
+| --- | --- |
+| `fetchFeeGrants(lcdUrl, grantee, opts?)` | Grants this address may spend against |
+| `parseFeeGrant(raw, denom?)` | Normalise one LCD allowance if you fetch it yourself |
+| `selectFeeGrant(grants, opts)` | Pick a granter — `auto`, `select` or `off` |
+| `rankFeeGrants(grants, ctx)` | Every usable grant, best first |
+| `compareGrants(a, b)` | The comparator, if you want a different order |
+| `checkUsable(grant, ctx)` / `isUsable(...)` | Why one grant cannot pay |
+| `availableFee(grant)` | Spendable now in base units; `undefined` = uncapped |
+| `estimateFee(gasLimit, gasPrice)` | Fee in base units, rounded up |
+
+`fetchFeeGrants` accepts `{ denom, limit, fetchImpl }`, so a non-SCRT chain or a custom
+fetch (proxy, retries, test double) needs no changes to the module.
+
+### Things the SDK cannot do for you
+
+- **A grant is never applied automatically.** If your transaction does not set
+  `fee.granter`, the fee comes from the sender, whatever grants exist.
+- **The chain re-checks everything at execution.** A grant can be revoked or drained between
+  your query and your broadcast; treat rejection as normal and fall back to self-paying.
+- **A brand-new account still cannot transact.** Accounts are created by receiving coins, and
+  a grant does not create one, so a fresh address needs a small deposit before it can sign.
 
 ### Editing a grant
 
@@ -225,8 +328,18 @@ src/
   app/          layout, page, design tokens
   components/   dashboard, cards, rows, modals, toasts
   hooks/        wallet context, grant loading
-  lib/          chain config, Keplr, feegrant domain logic, formatting
+  lib/
+    feegrant-sdk.ts   standalone: fetch, parse and choose a fee grant
+    feegrant.ts       grant/revoke transactions, built on the SDK
+    chains.ts         chain registry
+    keplr.ts          wallet connection
+    bank.ts           balance and send
+    history.ts        activity search
+scripts/
+  test-feegrant-sdk.ts
 ```
+
+`feegrant-sdk.ts` deliberately imports nothing else, so it can be lifted out on its own.
 
 ## Status
 

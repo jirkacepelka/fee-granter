@@ -154,3 +154,39 @@
   border-color: var(--color-accent);
   outline: none;
 }
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.segment {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
+}
+
+.segment:hover:not(.segmentActive) {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.segmentActive {
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.feeNote {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-text-faint);
+}
