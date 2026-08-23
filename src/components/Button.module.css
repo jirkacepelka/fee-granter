@@ -55,6 +55,19 @@
   background: var(--color-cta-press);
 }
 
+.success {
+  background: var(--color-success);
+  color: #ffffff;
+}
+
+.success:hover:not(:disabled) {
+  background: var(--color-success-hover);
+}
+
+.success:active:not(:disabled) {
+  background: var(--color-success-press);
+}
+
 .ghost {
   background: transparent;
   border-color: var(--color-border);

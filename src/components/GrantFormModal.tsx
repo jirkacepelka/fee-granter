@@ -183,7 +183,7 @@ export function GrantFormModal({
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" form="grant-form" loading={submitting}>
+          <Button variant="success" type="submit" form="grant-form" loading={submitting}>
             {isEdit ? "Save changes" : "Create fee grant"}
           </Button>
         </>

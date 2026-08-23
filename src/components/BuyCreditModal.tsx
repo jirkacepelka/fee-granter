@@ -82,7 +82,7 @@ export function BuyCreditModal({
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" form="buy-credit-form" loading={submitting}>
+          <Button variant="success" type="submit" form="buy-credit-form" loading={submitting}>
             Buy credit
           </Button>
         </>

@@ -42,6 +42,9 @@
   --color-danger: #ff4d4d;
   --color-success: #35c27a;
   --color-warning: #ffb020;
+  /* Derived once here from whatever --color-success each theme sets below. */
+  --color-success-hover: color-mix(in srgb, var(--color-success) 85%, white);
+  --color-success-press: color-mix(in srgb, var(--color-success) 85%, black);
 
   /* Radii */
   --radius-card: 20px;
@@ -225,7 +228,6 @@ a {
   /* Keeps the 70/350 (20%) proportion from the 350px design at any size. */
   --chameleon-overhang: calc(var(--chameleon-size) * 0.2);
 
-  display: none;
   position: fixed;
   right: calc(-1 * var(--chameleon-overhang));
   bottom: calc(-1 * var(--chameleon-overhang));
@@ -234,8 +236,17 @@ a {
   z-index: 1;
   pointer-events: none;
   user-select: none;
+  opacity: 0;
+  visibility: hidden;
+  /* Its own compositing layer - some browsers only repaint a fixed-position
+     element on scroll/resize otherwise, so a theme switch via display:none
+     needed a refresh to actually show it. Opacity animates on that layer
+     without that dependency. */
+  transform: translateZ(0);
+  transition: opacity 160ms ease;
 }
 
 :root[data-theme="og"] .ogChameleon {
-  display: block;
+  opacity: 1;
+  visibility: visible;
 }
