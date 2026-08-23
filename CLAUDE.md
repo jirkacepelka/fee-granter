@@ -126,11 +126,12 @@ behaviour:
 - A grant cannot exist before the grantee's address is known: `MsgGrantAllowance` is signed by
   the granter and names the grantee, so a voucher/QR scheme needs something that signs on
   redemption — an off-chain service, or a contract (see below).
-- A contract **can** be that signer. `contracts/gas-vault` is a spike that issues fee grants via
-  `CosmosMsg::Stargate`; Secret advertises the `stargate` capability and its compute module
-  applies no allow-list of message types, but requires every signer of a dispatched message to
-  be the contract itself — so a contract may grant only from its own balance. Verified by source
-  reading and unit tests, **not yet on a chain**; see that README before relying on it.
+- A contract **can** be that signer, and this is **confirmed on pulsar-3**, not just inferred:
+  `contracts/gas-vault` issues fee grants via `CosmosMsg::Stargate`, and the resulting grant
+  names the contract as granter. Secret advertises the `stargate` capability and its compute
+  module applies no allow-list of message types, but requires every signer of a dispatched
+  message to be the contract itself — so a contract may grant only from its own balance. The
+  deployment details are in that README. Not yet exercised on `secret-4`.
 
 ## Environment
 
