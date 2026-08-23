@@ -154,7 +154,7 @@
 }
 
 .segmentActive {
-  background: var(--color-accent);
+  background: var(--color-cta);
   color: #ffffff;
 }
 

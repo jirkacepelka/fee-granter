@@ -350,7 +350,7 @@ export function Dashboard() {
                   Buy gas credit
                 </Button>
               ) : null}
-              <Button icon={<Plus size={16} aria-hidden />} onClick={openCreate}>
+              <Button variant="cta" icon={<Plus size={16} aria-hidden />} onClick={openCreate}>
                 New fee grant
               </Button>
             </div>
@@ -380,7 +380,7 @@ export function Dashboard() {
           {!loading && !error && grants.length === 0 ? (
             <div className={styles.empty}>
               <p>You are not covering fees for anyone yet.</p>
-              <Button variant="ghost" icon={<Plus size={16} aria-hidden />} onClick={openCreate}>
+              <Button variant="ghost-cta" icon={<Plus size={16} aria-hidden />} onClick={openCreate}>
                 Create your first fee grant
               </Button>
             </div>
