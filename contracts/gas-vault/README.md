@@ -66,9 +66,14 @@ object Docker will not accept:
 
 ```powershell
 cd contracts\gas-vault
-docker run --rm -v "${PWD}:/contract" -w /contract ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13
+$img = "ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13"
+docker run --rm -v "${PWD}:/contract" -w /contract $img
 cd ..\..
 ```
+
+The image goes in a variable so no line is long enough to be broken up when pasted — a
+`docker run` split across two lines runs once without an image and then tries to execute the
+image name as a program.
 
 Either way this writes `contract.wasm.gz`, which the deploy script picks up automatically.
 
