@@ -35,6 +35,8 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
     setEndpointOverride,
     setFeeMode,
     setFeeGranter,
+    gasVaultAddress,
+    setGasVaultAddress,
   } = useSettings();
   const { grants } = useFeePayer();
 
@@ -42,11 +44,13 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
   // does not re-probe on every keystroke.
   const [draftLcd, setDraftLcd] = useState("");
   const [draftRpc, setDraftRpc] = useState("");
+  const [draftVault, setDraftVault] = useState("");
 
   useEffect(() => {
     setDraftLcd(lcdOverride[chainId] ?? "");
     setDraftRpc(rpcOverride[chainId] ?? "");
-  }, [chainId, lcdOverride, rpcOverride]);
+    setDraftVault(gasVaultAddress);
+  }, [chainId, lcdOverride, rpcOverride, gasVaultAddress]);
 
   const chain = CHAINS[chainId];
 
@@ -141,6 +145,23 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
         ) : null}
 
         <span className={styles.hint}>{FEE_HINTS[feeMode]}</span>
+      </div>
+
+      <div className={styles.section}>
+        <span className={styles.label}>Gas vault contract</span>
+        <input
+          className={styles.input}
+          value={draftVault}
+          onChange={(event) => setDraftVault(event.target.value)}
+          onBlur={() => setGasVaultAddress(chainId, draftVault.trim())}
+          placeholder="secret1… (none deployed)"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <span className={styles.hint}>
+          Lets you buy gas credit that the contract grants, rather than granting from your own
+          wallet. Leave empty to hide the option.
+        </span>
       </div>
     </div>
   );

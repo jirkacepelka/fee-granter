@@ -17,6 +17,11 @@ export interface ChainConfig {
    * Testnet SCRT has no market, so it is absent there.
    */
   osmosisDenom?: string;
+  /**
+   * Address of a deployed gas-vault contract, if there is one. Empty until one
+   * is deployed; Settings overrides it per chain at runtime.
+   */
+  gasVaultAddress: string;
 }
 
 /** Both chains use the same coin, precision and address prefix. */
@@ -63,6 +68,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     ]),
     explorerTxTemplate:
       process.env.NEXT_PUBLIC_EXPLORER_TX_URL ?? "https://testnet.ping.pub/secret/tx/{hash}",
+    gasVaultAddress: process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS ?? "",
   },
   "secret-4": {
     chainId: "secret-4",
@@ -86,6 +92,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     // SCRT as it is denominated on Osmosis.
     osmosisDenom:
       "ibc/0954E1C28EB7AF5B72D24F3BC2B47BBB2FDF91BDDFD57B74B99E133AED40972A",
+    gasVaultAddress: process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET ?? "",
   },
 };
 

@@ -104,7 +104,16 @@ returns without error is not evidence; the grant existing afterwards is.
 
 Point it at a different node with `LCD_URL` if the default is down.
 
-### 4. Spend it
+### 4. Wire it into the dashboard
+
+Deploying is a one-off; using it belongs in the app. Put the contract address from step 3 into
+**Settings → Gas vault contract** and a **Buy gas credit** button appears beside *New fee
+grant*. From then on nobody needs the terminal: pick an address, pick an amount, and the
+contract issues the allowance.
+
+`NEXT_PUBLIC_GAS_VAULT_ADDRESS` sets a default for everyone instead of per browser.
+
+### 5. Spend it
 
 The grantee still has to ask for the grant — a fee grant is never applied automatically. Set
 `fee.granter` to the contract address, or use the dashboard in this repo: connect as the

@@ -1,12 +1,13 @@
 "use client";
 
-import { Ban, Info, Plus, RefreshCw, Wallet } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Ban, Fuel, Info, Plus, RefreshCw, Wallet } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TxResponse } from "secretjs";
 
 import { useGrants } from "@/hooks/useGrants";
 import { useWallet } from "@/hooks/useWallet";
 import {
+  MSG_EXECUTE_CONTRACT,
   MSG_GRANT_ALLOWANCE,
   MSG_REVOKE_ALLOWANCE,
   MSG_SEND,
@@ -19,7 +20,13 @@ import {
   GAS_REVOKE,
   GAS_SEND,
 } from "@/lib/chains";
+import { GAS_BUY } from "@/lib/gasVault";
 import { sendScrt } from "@/lib/bank";
+import {
+  buyGasCredit,
+  queryVaultSolvency,
+  type VaultSolvency,
+} from "@/lib/gasVault";
 import {
   grantAllowance,
   revokeAll,
@@ -39,6 +46,7 @@ import {
 import { forgetGrantee, rememberGrantee } from "@/lib/registry";
 
 import { Amount } from "./Amount";
+import { BuyCreditModal } from "./BuyCreditModal";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -65,7 +73,7 @@ function errorMessage(caught: unknown): string {
 
 export function Dashboard() {
   const { status, address, client, error: walletError, refreshBalance } = useWallet();
-  const { chain } = useSettings();
+  const { chain, gasVaultAddress } = useSettings();
   const { granterFor, refresh: refreshFeeGrants } = useFeePayer();
   const { grants, loading, error, source, refresh, retry } = useGrants(address);
   const { notifySuccess, notifyError } = useToast();
@@ -74,6 +82,8 @@ export function Dashboard() {
   const [editing, setEditing] = useState<FeeGrant>();
   const [revoking, setRevoking] = useState<FeeGrant>();
   const [suspendOpen, setSuspendOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [vault, setVault] = useState<VaultSolvency>();
   const [submitting, setSubmitting] = useState(false);
 
   const totals = useMemo(() => summarise(grants), [grants]);
@@ -189,6 +199,48 @@ export function Dashboard() {
     [client, address, runTx, refreshBalance, granterFor],
   );
 
+  const refreshVault = useCallback(async () => {
+    if (!client || !gasVaultAddress) {
+      setVault(undefined);
+      return;
+    }
+    try {
+      setVault(await queryVaultSolvency(client, gasVaultAddress));
+    } catch {
+      // A vault we cannot read is left blank rather than shown as empty.
+      setVault(undefined);
+    }
+  }, [client, gasVaultAddress]);
+
+  useEffect(() => {
+    void refreshVault();
+  }, [refreshVault]);
+
+  const handleBuyCredit = useCallback(
+    async (grantee: string, amount: string) => {
+      if (!client || !address || !gasVaultAddress) return;
+
+      const ok = await runTx(
+        () =>
+          buyGasCredit(
+            client,
+            gasVaultAddress,
+            address,
+            grantee,
+            amount,
+            granterFor(GAS_BUY, [MSG_EXECUTE_CONTRACT]),
+          ),
+        `${amount} ${DISPLAY_DENOM} of gas credit issued to ${truncateAddress(grantee)}.`,
+      );
+
+      if (ok) {
+        await refreshVault();
+        setBuyOpen(false);
+      }
+    },
+    [client, address, gasVaultAddress, runTx, granterFor, refreshVault],
+  );
+
   const openCreate = () => {
     setEditing(undefined);
     setFormOpen(true);
@@ -289,6 +341,15 @@ export function Dashboard() {
                   />
                 }
               />
+              {gasVaultAddress ? (
+                <Button
+                  variant="ghost"
+                  icon={<Fuel size={16} aria-hidden />}
+                  onClick={() => setBuyOpen(true)}
+                >
+                  Buy gas credit
+                </Button>
+              ) : null}
               <Button icon={<Plus size={16} aria-hidden />} onClick={openCreate}>
                 New fee grant
               </Button>
@@ -350,6 +411,16 @@ export function Dashboard() {
           setEditing(undefined);
         }}
         onSubmit={handleSubmit}
+      />
+
+      <BuyCreditModal
+        open={buyOpen}
+        vaultAddress={gasVaultAddress}
+        solvency={vault}
+        selfAddress={address}
+        submitting={submitting}
+        onClose={() => setBuyOpen(false)}
+        onSubmit={handleBuyCredit}
       />
 
       <ConfirmDialog

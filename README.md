@@ -110,12 +110,30 @@ on `MsgSend`/`MsgMultiSend` instead means only real transfers appear.
 A node configured not to index will legitimately return nothing — the UI says "No activity
 found" rather than claiming there is none.
 
+## Buying gas credit from a contract
+
+`contracts/gas-vault` is a contract that issues fee grants itself. Pay it SCRT with a grantee
+address and it grants that address the same amount, **payable from the contract rather than
+from your wallet** — so the grantee does not depend on you staying funded afterwards, which is
+what a bridge or event sponsor needs.
+
+Set its address under **Settings → Gas vault contract** (or `NEXT_PUBLIC_GAS_VAULT_ADDRESS`)
+and a **Buy gas credit** button appears next to *New fee grant*. With no address set the option
+is hidden entirely, so the app is unchanged until a vault is deployed.
+
+The contract's code hash is always read from the chain rather than configured: a migration
+changes it, and a stale hash does not degrade — it stops every query dead.
+
+Deploying one is a one-off; see `contracts/gas-vault/README.md`.
+
 ## Settings
 
 - **Appearance** — dark, light, or follow the system.
 - **Endpoints** — per-chain LCD and RPC overrides.
 - **Transaction fees** — who pays for everything this app sends: `Auto`, a specific grant, or
   always this wallet.
+- **Gas vault contract** — address of a deployed `gas-vault`, per chain. Empty hides the
+  buy-credit option.
 
 Fee payment is one app-wide preference rather than a choice per screen, so creating a grant,
 revoking one, suspending all and sending SCRT all resolve it the same way. Adding a new

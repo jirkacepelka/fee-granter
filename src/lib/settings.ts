@@ -19,6 +19,8 @@ export interface Settings {
   feeMode: SelectionMode;
   /** Granter used when `feeMode` is `select`. Empty means none chosen. */
   feeGranter: string;
+  /** Per-chain gas-vault contract address, overriding the built-in default. */
+  gasVaultOverride: Partial<Record<ChainId, string>>;
 }
 
 export type ThemePreference = "system" | "dark" | "light";
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rpcOverride: {},
   feeMode: "auto",
   feeGranter: "",
+  gasVaultOverride: {},
 };
 
 function isTheme(value: unknown): value is ThemePreference {
@@ -65,6 +68,7 @@ export function loadSettings(): Settings {
       rpcOverride: overrides(parsed.rpcOverride),
       feeMode: isFeeMode(parsed.feeMode) ? parsed.feeMode : DEFAULT_SETTINGS.feeMode,
       feeGranter: typeof parsed.feeGranter === "string" ? parsed.feeGranter : "",
+      gasVaultOverride: overrides(parsed.gasVaultOverride),
     };
   } catch {
     return DEFAULT_SETTINGS;

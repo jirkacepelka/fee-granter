@@ -12,6 +12,7 @@ import { estimateFee, selectFeeGrant, type FeeGrant, type Selection } from "@/li
 export const MSG_SEND = "/cosmos.bank.v1beta1.MsgSend";
 export const MSG_GRANT_ALLOWANCE = "/cosmos.feegrant.v1beta1.MsgGrantAllowance";
 export const MSG_REVOKE_ALLOWANCE = "/cosmos.feegrant.v1beta1.MsgRevokeAllowance";
+export const MSG_EXECUTE_CONTRACT = "/secret.compute.v1beta1.MsgExecuteContract";
 
 interface FeePayerContextValue {
   /** Grants the connected wallet may spend against. */
