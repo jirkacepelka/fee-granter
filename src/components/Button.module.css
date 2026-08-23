@@ -56,16 +56,16 @@
 }
 
 .success {
-  background: var(--color-success);
+  background: var(--color-confirm);
   color: #ffffff;
 }
 
 .success:hover:not(:disabled) {
-  background: var(--color-success-hover);
+  background: var(--color-confirm-hover);
 }
 
 .success:active:not(:disabled) {
-  background: var(--color-success-press);
+  background: var(--color-confirm-press);
 }
 
 .ghost {

@@ -27,6 +27,12 @@
   --color-cta: var(--color-accent);
   --color-cta-hover: color-mix(in srgb, var(--color-cta) 85%, white);
   --color-cta-press: color-mix(in srgb, var(--color-cta) 85%, black);
+  /* The "confirm" submit buttons (Create fee grant, Buy credit, Send). Off the
+     accent everywhere except OG - not tied to --color-success, which themes
+     independently and would otherwise turn every theme's confirm button green. */
+  --color-confirm: var(--color-accent);
+  --color-confirm-hover: color-mix(in srgb, var(--color-confirm) 85%, white);
+  --color-confirm-press: color-mix(in srgb, var(--color-confirm) 85%, black);
 
   /* Text */
   --color-text: #ffffff;
@@ -42,9 +48,6 @@
   --color-danger: #ff4d4d;
   --color-success: #35c27a;
   --color-warning: #ffb020;
-  /* Derived once here from whatever --color-success each theme sets below. */
-  --color-success-hover: color-mix(in srgb, var(--color-success) 85%, white);
-  --color-success-press: color-mix(in srgb, var(--color-success) 85%, black);
 
   /* Radii */
   --radius-card: 20px;
@@ -120,9 +123,10 @@
   --color-meter: #5aa361;
   --color-link: #60a0dc;
   --color-info: #60a0dc;
-  /* --color-cta-hover/-press derive from this at :root, so overriding the
-     base colour here is enough. */
+  /* --color-cta-hover/-press and --color-confirm-hover/-press derive from
+     these at :root, so overriding the base colours here is enough. */
   --color-cta: #60a0dc;
+  --color-confirm: #5aa361;
 
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.6);
