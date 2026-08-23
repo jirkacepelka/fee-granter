@@ -18,6 +18,10 @@
 
   /* Fill of the usage meter. Follows the accent unless a theme says otherwise. */
   --color-meter: var(--color-accent);
+  /* Explorer links, and the marker on a fee the grant paid. Themes may move
+     either off the accent - see OG. */
+  --color-link: var(--color-accent);
+  --color-info: var(--color-warning);
 
   /* Text */
   --color-text: #ffffff;
@@ -103,8 +107,11 @@
   --color-accent-hover: #e14e40;
   --color-accent-press: #b32e22;
 
-  /* The old palette carried both signals: red to act, green to measure. */
+  /* The old palette spread the work across four colours: red to act, green to
+     measure, blue to point somewhere, white at 20% for every line. */
   --color-meter: #5aa361;
+  --color-link: #60a0dc;
+  --color-info: #60a0dc;
 
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.6);

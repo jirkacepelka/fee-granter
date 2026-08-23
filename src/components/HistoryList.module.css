@@ -33,19 +33,21 @@
   flex-shrink: 0;
 }
 
+/* Tinted from the tokens rather than fixed rgba, so a theme that moves the
+   accent or the meter takes these chips with it. */
 .sent {
-  background: rgba(255, 57, 18, 0.15);
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
   color: var(--color-accent);
 }
 
 .received {
-  background: rgba(53, 194, 122, 0.15);
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
   color: var(--color-success);
 }
 
 .feegrant {
-  background: rgba(255, 176, 32, 0.15);
-  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-info) 15%, transparent);
+  color: var(--color-info);
 }
 
 .text {
@@ -75,6 +77,11 @@
 .link {
   color: var(--color-text-faint);
   flex-shrink: 0;
+  transition: color var(--transition);
+}
+
+.row:hover .link {
+  color: var(--color-link);
 }
 
 .state {

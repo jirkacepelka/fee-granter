@@ -1,26 +1,34 @@
 /**
- * Mark for the "Original Gangster" theme.
+ * Mark for the "Original Gangster" theme: the old Secret Network logo, from
+ * `public/og.svg`.
  *
- * Placeholder until `public/og.svg` lands - replace the paths below with that
- * file's contents. Inline rather than an `<img>` so it matches the Lucide icons
- * around it: sized by `size`, drawn in the current text colour, no request.
+ * Inline rather than an `<img>` so it matches the Lucide icons around it -
+ * sized by `size`, no request - and `fill`/`stroke` are `currentColor` rather
+ * than the source's white, which would vanish on the light theme.
  */
 export function OgMark({ size = 16 }: { size?: number }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="0 0 216 216"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
       aria-hidden
       focusable="false"
     >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M15 9.5a3.5 3.5 0 1 0 0 5H13" />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M146.005 72.7132C147.698 74.4101 150.45 74.198 151.72 72.289C152.99 70.8042 152.778 68.4709 151.297 67.1982C137.326 53.835 124.837 47.0473 104.093 48.1079C82.2903 49.1685 63.0278 60.6227 64.2978 84.8038C65.3562 106.227 86.1004 114.076 104.305 121.075C118.275 126.378 130.552 131.045 131.187 141.014C131.822 152.044 120.604 158.62 110.867 159.256C92.4507 160.317 81.6553 153.741 69.5897 142.075C68.108 140.59 65.7796 140.59 64.2978 141.863C62.6044 143.347 62.6044 145.893 64.0862 147.59C77.6334 161.165 91.604 167.953 111.925 166.892C132.246 165.407 157.224 153.953 155.953 129.772C154.895 108.773 134.998 100.924 117.005 94.1368C102.188 88.4097 88.4289 83.1068 87.7939 71.0163C87.3705 62.3196 97.7426 55.9561 105.151 55.5319C123.144 54.6834 134.363 61.0469 146.005 72.7132ZM148.333 130.196C148.333 139.529 143.253 147.59 135.633 152.256L135.209 152.044C137.961 148.226 138.384 143.347 138.384 138.681C138.384 124.893 123.355 119.591 107.48 113.863C89.9106 107.5 71.4948 100.924 71.4948 82.2584C71.4948 73.7738 75.305 64.6528 82.7136 60.4106L82.9253 60.8348C81.0202 64.865 80.1735 69.3194 80.1735 73.7738C80.1735 89.046 96.8959 95.1974 113.83 101.561C131.187 107.924 148.333 114.288 148.333 130.196Z"
+        fill="currentColor"
+      />
+      <path
+        d="M108 5C164.809 5 211 51.1909 211 108C211 164.809 164.809 211 108 211C51.1909 211 5 164.809 5 108C5 51.1909 51.1909 5 108 5Z"
+        stroke="currentColor"
+        strokeWidth={10}
+        strokeMiterlimit={10.1695}
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
