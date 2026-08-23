@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Check, ChevronDown, Monitor, Moon, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { useFeePayer } from "@/hooks/useFeePayer";
 import { useSettings } from "@/hooks/useSettings";
@@ -10,14 +10,23 @@ import { availableFee, type FeeGrant, type SelectionMode } from "@/lib/feegrant-
 import { formatAmount, formatPeriod, truncateAddress } from "@/lib/format";
 import type { ThemePreference } from "@/lib/settings";
 
+import { OgMark } from "./icons/OgMark";
 import styles from "./SettingsPanel.module.css";
 
-/** Listed in the dropdown in this order; add new themes here. */
-const THEMES: Array<{ value: ThemePreference; label: string }> = [
-  { value: "dark", label: "Dark" },
-  { value: "light", label: "Light" },
-  { value: "og", label: "Original Gangster" },
-  { value: "system", label: "System" },
+/** Listed in the picker in this order; add new themes here. */
+const THEMES: Array<{
+  value: ThemePreference;
+  label: string;
+  icon: (props: { size: number }) => React.ReactNode;
+}> = [
+  { value: "dark", label: "Dark", icon: ({ size }) => <Moon size={size} aria-hidden /> },
+  { value: "light", label: "Light", icon: ({ size }) => <Sun size={size} aria-hidden /> },
+  { value: "og", label: "Original Gangster", icon: ({ size }) => <OgMark size={size} /> },
+  {
+    value: "system",
+    label: "System",
+    icon: ({ size }) => <Monitor size={size} aria-hidden />,
+  },
 ];
 
 interface SettingsPanelProps {
@@ -67,18 +76,7 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
 
       <div className={styles.section}>
         <span className={styles.label}>Appearance</span>
-        <select
-          className={styles.select}
-          value={theme}
-          onChange={(event) => setTheme(event.target.value as ThemePreference)}
-          aria-label="Theme"
-        >
-          {THEMES.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <ThemePicker theme={theme} onPick={setTheme} />
       </div>
 
       <div className={styles.section}>
@@ -163,6 +161,81 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
           wallet. Leave empty to hide the option.
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Themes carry an icon, which a native `select` cannot show, so this is a
+ * listbox. It expands in flow rather than floating: the settings panel is
+ * itself a popover with `overflow-y: auto`, which would clip an absolutely
+ * positioned menu.
+ */
+function ThemePicker({
+  theme,
+  onPick,
+}: {
+  theme: ThemePreference;
+  onPick: (theme: ThemePreference) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const current = THEMES.find((entry) => entry.value === theme) ?? THEMES[0];
+
+  const choose = (value: ThemePreference) => {
+    onPick(value);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  return (
+    <div
+      className={styles.picker}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !open) return;
+        setOpen(false);
+        triggerRef.current?.focus();
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className={styles.pickerTrigger}
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Theme: ${current.label}`}
+      >
+        <span className={styles.pickerCurrent}>
+          {current.icon({ size: 16 })}
+          {current.label}
+        </span>
+        <ChevronDown
+          size={16}
+          className={open ? styles.chevronOpen : undefined}
+          aria-hidden
+        />
+      </button>
+
+      {open ? (
+        <ul className={styles.pickerList} role="listbox" aria-label="Theme">
+          {THEMES.map(({ value, label, icon }) => (
+            <li key={value} role="option" aria-selected={value === theme}>
+              <button
+                type="button"
+                className={`${styles.pickerOption} ${
+                  value === theme ? styles.pickerOptionActive : ""
+                }`}
+                onClick={() => choose(value)}
+              >
+                {icon({ size: 16 })}
+                <span className={styles.pickerLabel}>{label}</span>
+                {value === theme ? <Check size={15} aria-hidden /> : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

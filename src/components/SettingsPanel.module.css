@@ -151,3 +151,84 @@
   background: var(--color-accent);
   color: #ffffff;
 }
+
+/* Theme picker. Expands in flow - see the note on ThemePicker. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pickerTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color var(--transition);
+}
+
+.pickerTrigger:hover,
+.pickerTrigger[aria-expanded="true"] {
+  border-color: var(--color-border-strong);
+}
+
+.pickerCurrent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.pickerOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+}
+
+.pickerOption:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.pickerOptionActive {
+  color: var(--color-text);
+}
+
+.pickerLabel {
+  flex: 1;
+  min-width: 0;
+}
