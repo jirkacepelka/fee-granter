@@ -23,23 +23,38 @@ const AMOUNT = process.env.AMOUNT ?? "1000000";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+const BUILD_HINT =
+  `  cd ${ROOT}\n` +
+  '  docker run --rm -v "$PWD":/contract -w /contract \\\n' +
+  "    ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13\n" +
+  "\n  PowerShell:\n" +
+  '  $img = "ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13"\n' +
+  '  docker run --rm -v "${PWD}:/contract" -w /contract $img';
+
 /**
- * Prefer the optimizer's output. A host `cargo build` with Rust 1.82+ emits the
- * reference-types and multivalue proposals, which the chain rejects at upload —
- * so falling back to it is only useful for catching mistakes earlier, and the
- * warning says so rather than letting the rejection look like a chain problem.
+ * Only the optimizer's output is uploadable.
+ *
+ * A host `cargo build` with Rust 1.82+ emits the reference-types and multivalue
+ * proposals, and the chain refuses to deserialize the result — "Invalid table
+ * reference". Uploading one can never succeed, so this refuses rather than
+ * spending gas to learn that, and the error names the build step instead of
+ * looking like a chain or contract fault.
  */
-function wasmPath(): { path: string; optimized: boolean } {
+function wasmPath(): string {
   const optimized = resolve(ROOT, "contract.wasm.gz");
-  if (existsSync(optimized)) return { path: optimized, optimized: true };
+  if (existsSync(optimized)) return optimized;
 
   const host = resolve(ROOT, "target/wasm32-unknown-unknown/release/gas_vault.wasm");
-  if (existsSync(host)) return { path: host, optimized: false };
+  if (existsSync(host) && process.env.ALLOW_HOST_WASM === "1") {
+    console.warn("  ALLOW_HOST_WASM=1: uploading a host build, which the chain will reject.");
+    return host;
+  }
 
   throw new Error(
-    "no wasm found. Build it first:\n" +
-      `  docker run --rm -v "${ROOT}":/contract -w /contract \\\n` +
-      "    ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13",
+    (existsSync(host)
+      ? "only a host build exists, which the chain cannot deserialize.\n" +
+        "Build with the pinned optimizer:\n"
+      : "no wasm found. Build it first:\n") + BUILD_HINT,
   );
 }
 
@@ -90,15 +105,9 @@ async function main() {
   }
 
   console.log("\n1. upload");
-  const { path, optimized } = wasmPath();
+  const path = wasmPath();
   const wasm = new Uint8Array(readFileSync(path));
   console.log(`  ${path} (${wasm.length} bytes)`);
-  if (!optimized) {
-    console.warn(
-      "  warning: this is a host build, which the chain will most likely reject.\n" +
-        "  Build with the pinned optimizer image for a deployable artifact.",
-    );
-  }
   const stored = ok(
     await secretjs.tx.compute.storeCode(
       { sender, wasm_byte_code: wasm, source: "", builder: "" },
