@@ -35,24 +35,64 @@ cargo build --release --target wasm32-unknown-unknown
 
 **It has never run on a chain.** The egress policy of the environment this was written in
 denied `pkg-containers.githubusercontent.com`, so neither LocalSecret nor the contract
-optimizer image could be pulled. Everything above is source reading plus unit tests; the
-end-to-end path — upload, instantiate, execute, then read the grant back out of
-`/cosmos/feegrant/v1beta1/allowances/{grantee}` — is still open.
+optimizer image could be pulled, and the public testnet endpoints were unreachable too.
+Everything above is source reading plus unit tests. The end-to-end path is scripted but unrun —
+see **Running it on pulsar-3** below.
 
-Two things to settle before trusting it:
+The one thing that could still make it fail: the evidence above is from master at
+`95d87ae` (2026-07-02), and `pulsar-3` may run something older that lacks the stargate encoder.
+That shows up as a rejection at upload.
 
-1. **Run it on LocalSecret.** `docker run -d -p 1317:1317 -p 26657:26657 ghcr.io/scrtlabs/localsecret:v1.24.0`,
-   upload, instantiate, fund, execute, and query the grantee's allowances.
-2. **Check the deployed chain version.** The evidence above is from master. `secret-4` and
-   `pulsar-3` may run something older that lacks the stargate encoder.
+## Running it on pulsar-3
 
-**The wasm in `target/` is not deployable.** It is a host build with Rust 1.94, which emits
-the `reference-types` and `multivalue` proposals that Secret rejects at upload. Build with the
-pinned optimizer for anything real:
+### 1. Build a deployable artifact
+
+The chain rejects wasm built by a host toolchain — Rust 1.82+ emits the `reference-types` and
+`multivalue` proposals that Secret refuses at upload. Use the pinned optimizer, which also makes
+the artifact hash reproducible from a commit:
 
 ```bash
+cd contracts/gas-vault
 docker run --rm -v "$PWD":/contract -w /contract \
   ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13
+```
+
+That writes `contract.wasm.gz`, which the deploy script picks up automatically.
+
+### 2. Get a funded testnet account
+
+Any mnemonic works; you need roughly 2 SCRT to cover the upload. Top it up at
+<https://faucet.pulsar.scrttestnet.com>.
+
+### 3. Deploy and prove it
+
+```bash
+cd ../..            # repo root, where secretjs is installed
+MNEMONIC="your twelve words …" \
+GRANTEE="secret1…the address that should get the allowance" \
+  node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
+```
+
+It uploads, instantiates, buys 1 SCRT of allowance (override with `AMOUNT`, in uscrt), then
+**reads the grant back off the chain** and fails loudly if it is not there. A transaction that
+returns without error is not evidence; the grant existing afterwards is.
+
+Point it at a different node with `LCD_URL` if the default is down.
+
+### 4. Spend it
+
+The grantee still has to ask for the grant — a fee grant is never applied automatically. Set
+`fee.granter` to the contract address, or use the dashboard in this repo: connect as the
+grantee, and the contract's grant appears under **Settings → Transaction fees**.
+
+### If the upload is rejected
+
+`Error parsing into type ... unknown variant` or a capability error at upload means the chain
+running `pulsar-3` is older than the code this was checked against (master, 2026-07-02) and
+lacks the stargate encoder. Check what the node reports:
+
+```bash
+curl -s https://pulsar.lcd.secretnodes.com/cosmos/base/tendermint/v1beta1/node_info | jq .application_version
 ```
 
 ## Design notes
