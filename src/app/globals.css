@@ -16,6 +16,9 @@
   --color-accent-hover: #ff5230;
   --color-accent-press: #e02d0a;
 
+  /* Fill of the usage meter. Follows the accent unless a theme says otherwise. */
+  --color-meter: var(--color-accent);
+
   /* Text */
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.6);
@@ -99,6 +102,9 @@
   --color-accent: #d53a2c;
   --color-accent-hover: #e14e40;
   --color-accent-press: #b32e22;
+
+  /* The old palette carried both signals: red to act, green to measure. */
+  --color-meter: #5aa361;
 
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.6);

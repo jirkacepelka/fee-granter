@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Monitor, Moon, Skull, Sun } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useFeePayer } from "@/hooks/useFeePayer";
@@ -12,17 +12,12 @@ import type { ThemePreference } from "@/lib/settings";
 
 import styles from "./SettingsPanel.module.css";
 
-const THEMES: Array<{
-  value: ThemePreference;
-  label: string;
-  /** Spelled out for the tooltip and screen readers when `label` is short. */
-  title?: string;
-  icon: typeof Sun;
-}> = [
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "og", label: "OG", title: "Original Gangster", icon: Skull },
-  { value: "system", label: "System", icon: Monitor },
+/** Listed in the dropdown in this order; add new themes here. */
+const THEMES: Array<{ value: ThemePreference; label: string }> = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
+  { value: "og", label: "Original Gangster" },
+  { value: "system", label: "System" },
 ];
 
 interface SettingsPanelProps {
@@ -72,22 +67,18 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
 
       <div className={styles.section}>
         <span className={styles.label}>Appearance</span>
-        <div className={styles.segmented} role="group" aria-label="Theme">
-          {THEMES.map(({ value, label, title, icon: Icon }) => (
-            <button
-              key={value}
-              type="button"
-              className={`${styles.segment} ${theme === value ? styles.segmentActive : ""}`}
-              title={title}
-              aria-label={title}
-              aria-pressed={theme === value}
-              onClick={() => setTheme(value)}
-            >
-              <Icon size={15} aria-hidden />
+        <select
+          className={styles.select}
+          value={theme}
+          onChange={(event) => setTheme(event.target.value as ThemePreference)}
+          aria-label="Theme"
+        >
+          {THEMES.map(({ value, label }) => (
+            <option key={value} value={value}>
               {label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div className={styles.section}>

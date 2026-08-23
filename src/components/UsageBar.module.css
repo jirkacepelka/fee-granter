@@ -15,7 +15,7 @@
 
 .fill {
   height: 100%;
-  background: var(--color-accent);
+  background: var(--color-meter);
   border-radius: var(--radius-card);
   transition: width 240ms ease;
 }
