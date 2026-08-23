@@ -224,8 +224,14 @@
   color: var(--color-text);
 }
 
-.pickerOptionActive {
+.pickerOptionActive,
+.pickerOptionActive:hover {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   color: var(--color-text);
+}
+
+.pickerCheck {
+  color: var(--color-accent);
 }
 
 .pickerLabel {

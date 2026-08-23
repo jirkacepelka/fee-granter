@@ -120,9 +120,9 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(255, 77, 77, 0.4);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
   border-radius: var(--radius-control);
-  background: rgba(255, 77, 77, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   font-size: 14px;
 }
 
@@ -150,9 +150,9 @@
 .connectError {
   margin: 0;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(255, 77, 77, 0.4);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, transparent);
   border-radius: var(--radius-control);
-  background: rgba(255, 77, 77, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   font-size: 14px;
   line-height: 1.55;
   text-align: left;

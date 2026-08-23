@@ -175,12 +175,12 @@
   gap: 6px;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 176, 32, 0.35);
+  border: 1px solid color-mix(in srgb, var(--color-info) 35%, transparent);
   border-radius: var(--radius-control);
-  background: rgba(255, 176, 32, 0.08);
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
   font-size: var(--font-size-caption);
   line-height: 1.45;
-  color: var(--color-warning);
+  color: var(--color-info);
 }
 
 .grantNote svg {

@@ -209,7 +209,9 @@ function ThemePicker({
               >
                 {icon({ size: 16 })}
                 <span className={styles.pickerLabel}>{label}</span>
-                {value === theme ? <Check size={15} aria-hidden /> : null}
+                {value === theme ? (
+                  <Check size={15} className={styles.pickerCheck} aria-hidden />
+                ) : null}
               </button>
             </li>
           ))}

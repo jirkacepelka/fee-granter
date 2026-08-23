@@ -54,12 +54,12 @@
 
 .danger {
   background: transparent;
-  border-color: rgba(255, 77, 77, 0.4);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
   color: var(--color-danger);
 }
 
 .danger:hover:not(:disabled) {
-  background: rgba(255, 77, 77, 0.12);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   border-color: var(--color-danger);
 }
 
