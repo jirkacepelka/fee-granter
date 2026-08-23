@@ -75,7 +75,9 @@ The image goes in a variable so no line is long enough to be broken up when past
 `docker run` split across two lines runs once without an image and then tries to execute the
 image name as a program.
 
-Either way this writes `contract.wasm.gz`, which the deploy script picks up automatically.
+Optimizer 1.0.13 writes into `optimized-wasm/`; older images wrote `contract.wasm.gz` into the
+project root. The deploy script looks in both, so either layout works — check the build printed
+`Finished \`release\` profile` and move on.
 
 ### 2. Get a funded testnet account
 

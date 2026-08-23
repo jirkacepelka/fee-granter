@@ -8,7 +8,7 @@
  *   MNEMONIC="..." GRANTEE="secret1..." \
  *     node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,6 +31,22 @@ const BUILD_HINT =
   '  $img = "ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13"\n' +
   '  docker run --rm -v "${PWD}:/contract" -w /contract $img';
 
+/** Whatever the optimizer left behind, wherever this version puts it. */
+function findOptimized(): string | undefined {
+  // Older images write straight to the project root.
+  const flat = resolve(ROOT, "contract.wasm.gz");
+  if (existsSync(flat)) return flat;
+
+  // 1.0.13 writes into optimized-wasm/, and the file name follows the crate.
+  const dir = resolve(ROOT, "optimized-wasm");
+  if (!existsSync(dir)) return undefined;
+
+  const names = readdirSync(dir);
+  const best =
+    names.find((name) => name.endsWith(".wasm.gz")) ?? names.find((name) => name.endsWith(".wasm"));
+  return best ? resolve(dir, best) : undefined;
+}
+
 /**
  * Only the optimizer's output is uploadable.
  *
@@ -41,8 +57,8 @@ const BUILD_HINT =
  * looking like a chain or contract fault.
  */
 function wasmPath(): string {
-  const optimized = resolve(ROOT, "contract.wasm.gz");
-  if (existsSync(optimized)) return optimized;
+  const optimized = findOptimized();
+  if (optimized) return optimized;
 
   const host = resolve(ROOT, "target/wasm32-unknown-unknown/release/gas_vault.wasm");
   if (existsSync(host) && process.env.ALLOW_HOST_WASM === "1") {
@@ -54,7 +70,7 @@ function wasmPath(): string {
     (existsSync(host)
       ? "only a host build exists, which the chain cannot deserialize.\n" +
         "Build with the pinned optimizer:\n"
-      : "no wasm found. Build it first:\n") + BUILD_HINT,
+      : "no optimizer output found. Build it first:\n") + BUILD_HINT,
   );
 }
 
@@ -95,8 +111,11 @@ async function main() {
     walletAddress: sender,
   });
 
+  const path = wasmPath();
+
   console.log(`sender   ${sender}`);
   console.log(`grantee  ${grantee}`);
+  console.log(`wasm     ${path}`);
 
   const balance = await secretjs.query.bank.balance({ address: sender, denom: DENOM });
   console.log(`balance  ${balance.balance?.amount ?? "0"} ${DENOM}`);
@@ -105,7 +124,6 @@ async function main() {
   }
 
   console.log("\n1. upload");
-  const path = wasmPath();
   const wasm = new Uint8Array(readFileSync(path));
   console.log(`  ${path} (${wasm.length} bytes)`);
   const stored = ok(
