@@ -36,6 +36,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </FeePayerProvider>
           </WalletProvider>
         </SettingsProvider>
+        {/* Only shown for the OG theme - see .ogChameleon in globals.css. */}
+        <img src="/og_chameleon.png" alt="" className="ogChameleon" width={350} height={350} />
       </body>
     </html>
   );

@@ -213,3 +213,29 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * OG mascot, tucked into the bottom-right corner. Hidden by default; CSS
+ * alone turns it on for the OG theme so it works from a plain <img> in the
+ * server-rendered layout, no client component or hook needed. Sized in vw so
+ * it shrinks on narrow viewports rather than overflowing the whole edge.
+ */
+.ogChameleon {
+  --chameleon-size: min(350px, 38vw);
+  /* Keeps the 70/350 (20%) proportion from the 350px design at any size. */
+  --chameleon-overhang: calc(var(--chameleon-size) * 0.2);
+
+  display: none;
+  position: fixed;
+  right: calc(-1 * var(--chameleon-overhang));
+  bottom: calc(-1 * var(--chameleon-overhang));
+  width: var(--chameleon-size);
+  height: var(--chameleon-size);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+:root[data-theme="og"] .ogChameleon {
+  display: block;
+}
