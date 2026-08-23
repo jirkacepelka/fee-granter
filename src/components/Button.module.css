@@ -55,6 +55,19 @@
   background: var(--color-cta-press);
 }
 
+.success {
+  background: var(--color-confirm);
+  color: #ffffff;
+}
+
+.success:hover:not(:disabled) {
+  background: var(--color-confirm-hover);
+}
+
+.success:active:not(:disabled) {
+  background: var(--color-confirm-press);
+}
+
 .ghost {
   background: transparent;
   border-color: var(--color-border);

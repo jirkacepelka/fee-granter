@@ -156,7 +156,7 @@ export function SendPanel({ balance, submitting, onBack, onSubmit }: SendPanelPr
 
       <p className={styles.feeNote}>{describeFeePayer(feePayer)}</p>
 
-      <Button type="submit" loading={submitting} className={styles.submit}>
+      <Button variant="success" type="submit" loading={submitting} className={styles.submit}>
         Send
       </Button>
     </form>
