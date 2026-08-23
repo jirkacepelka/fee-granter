@@ -23,7 +23,7 @@ export interface Settings {
   gasVaultOverride: Partial<Record<ChainId, string>>;
 }
 
-export type ThemePreference = "system" | "dark" | "light";
+export type ThemePreference = "system" | "dark" | "light" | "og";
 
 export const STORAGE_KEY = "fee-granter:settings";
 
@@ -38,7 +38,9 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 function isTheme(value: unknown): value is ThemePreference {
-  return value === "system" || value === "dark" || value === "light";
+  return (
+    value === "system" || value === "dark" || value === "light" || value === "og"
+  );
 }
 
 function isFeeMode(value: unknown): value is SelectionMode {
