@@ -135,7 +135,9 @@ Deploying is a one-off; using it belongs in the app. Put the contract address fr
 grant*. From then on nobody needs the terminal: pick an address, pick an amount, and the
 contract issues the allowance.
 
-`NEXT_PUBLIC_GAS_VAULT_ADDRESS` sets a default for everyone instead of per browser.
+On pulsar-3 the deployment below is already the built-in default, so that field only needs
+filling in to point somewhere else. `NEXT_PUBLIC_GAS_VAULT_ADDRESS` changes the default for
+everyone rather than per browser.
 
 ### 5. Spend it
 

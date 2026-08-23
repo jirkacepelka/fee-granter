@@ -117,9 +117,11 @@ address and it grants that address the same amount, **payable from the contract 
 from your wallet** — so the grantee does not depend on you staying funded afterwards, which is
 what a bridge or event sponsor needs.
 
-Set its address under **Settings → Gas vault contract** (or `NEXT_PUBLIC_GAS_VAULT_ADDRESS`)
-and a **Buy gas credit** button appears next to *New fee grant*. With no address set the option
-is hidden entirely, so the app is unchanged until a vault is deployed.
+On pulsar-3 this points at the vault this repo deployed,
+`secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf`, so **Buy gas credit** sits next to *New fee
+grant* out of the box. Point it at your own under **Settings → Gas vault contract** (or
+`NEXT_PUBLIC_GAS_VAULT_ADDRESS`). Mainnet has no vault deployed, so the option stays hidden
+there until you set one.
 
 The contract's code hash is always read from the chain rather than configured: a migration
 changes it, and a stale hash does not degrade — it stops every query dead.

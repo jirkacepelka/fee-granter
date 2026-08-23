@@ -152,13 +152,13 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
           value={draftVault}
           onChange={(event) => setDraftVault(event.target.value)}
           onBlur={() => setGasVaultAddress(chainId, draftVault.trim())}
-          placeholder="secret1… (none deployed)"
+          placeholder="secret1…"
           spellCheck={false}
           autoComplete="off"
         />
         <span className={styles.hint}>
           Lets you buy gas credit that the contract grants, rather than granting from your own
-          wallet. Leave empty to hide the option.
+          wallet. Empty uses the built-in vault for this chain, if there is one.
         </span>
       </div>
     </div>
