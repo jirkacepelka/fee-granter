@@ -124,8 +124,13 @@ behaviour:
 - An account-wide spending cap cannot be enforced. `x/feegrant` knows only per-grant limits. A
   ceiling setting was built and then removed for pretending otherwise.
 - A grant cannot exist before the grantee's address is known: `MsgGrantAllowance` is signed by
-  the granter and names the grantee, so a voucher/QR scheme needs a service that signs on
-  redemption.
+  the granter and names the grantee, so a voucher/QR scheme needs something that signs on
+  redemption — an off-chain service, or a contract (see below).
+- A contract **can** be that signer. `contracts/gas-vault` is a spike that issues fee grants via
+  `CosmosMsg::Stargate`; Secret advertises the `stargate` capability and its compute module
+  applies no allow-list of message types, but requires every signer of a dispatched message to
+  be the contract itself — so a contract may grant only from its own balance. Verified by source
+  reading and unit tests, **not yet on a chain**; see that README before relying on it.
 
 ## Environment
 
