@@ -31,17 +31,39 @@ cargo test                                          # 5 tests
 cargo build --release --target wasm32-unknown-unknown
 ```
 
-## What has NOT been verified
+## Confirmed on pulsar-3
 
-**It has never run on a chain.** The egress policy of the environment this was written in
-denied `pkg-containers.githubusercontent.com`, so neither LocalSecret nor the contract
-optimizer image could be pulled, and the public testnet endpoints were unreachable too.
-Everything above is source reading plus unit tests. The end-to-end path is scripted but unrun —
-see **Running it on pulsar-3** below.
+Deployed and exercised end to end on 23 August 2026. The contract issued a fee grant, and the
+grant was read back off the chain afterwards:
 
-The one thing that could still make it fail: the evidence above is from master at
-`95d87ae` (2026-07-02), and `pulsar-3` may run something older that lacks the stargate encoder.
-That shows up as a rejection at upload.
+| | |
+| --- | --- |
+| Contract | `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` |
+| Code id | 79 |
+| Code hash | `998473c0e1e3a8a1335ea695042b6de2b4503376b8679bdd5fda601b35bee021` |
+| Upload | `A2EB7B48A5B5A3D76BA8069B379333E555F5B454252EC78A6D919AB02DBAD795` |
+| Instantiate | `53786DE31B27844B39BF18787AE2F6D504C1601B21D7F7337DE9C421ECB5D060` |
+| Buy 1 SCRT of credit | `EC38B953B3EBD9F3A0C98B2D5F5349B96C10241AD017EF75ED9342D44231FDB0` |
+
+The resulting grant, from `/cosmos/feegrant/v1beta1/allowances/{grantee}`:
+
+```json
+{
+  "granter": "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf",
+  "grantee": "secret1nfuen7f7ntrwqud7rzl4zu88kkerx0ykn6axhs",
+  "allowance": {
+    "@type": "/cosmos.feegrant.v1beta1.BasicAllowance",
+    "spend_limit": [{ "denom": "uscrt", "amount": "1000000" }],
+    "expiration": null
+  }
+}
+```
+
+The granter is the **contract**, not the wallet that paid — which is the whole point, and the
+thing the source reading above predicted.
+
+Still open: this has not been run on `secret-4`. The evidence and the deployment are both
+pulsar-3, and mainnet may run an older version without the stargate encoder.
 
 ## Running it on pulsar-3
 
@@ -75,7 +97,9 @@ The image goes in a variable so no line is long enough to be broken up when past
 `docker run` split across two lines runs once without an image and then tries to execute the
 image name as a program.
 
-Either way this writes `contract.wasm.gz`, which the deploy script picks up automatically.
+Optimizer 1.0.13 writes into `optimized-wasm/`; older images wrote `contract.wasm.gz` into the
+project root. The deploy script looks in both, so either layout works — check the build printed
+`Finished \`release\` profile` and move on.
 
 ### 2. Get a funded testnet account
 
@@ -104,7 +128,18 @@ returns without error is not evidence; the grant existing afterwards is.
 
 Point it at a different node with `LCD_URL` if the default is down.
 
-### 4. Spend it
+### 4. Wire it into the dashboard
+
+Deploying is a one-off; using it belongs in the app. Put the contract address from step 3 into
+**Settings → Gas vault contract** and a **Buy gas credit** button appears beside *New fee
+grant*. From then on nobody needs the terminal: pick an address, pick an amount, and the
+contract issues the allowance.
+
+On pulsar-3 the deployment below is already the built-in default, so that field only needs
+filling in to point somewhere else. `NEXT_PUBLIC_GAS_VAULT_ADDRESS` changes the default for
+everyone rather than per browser.
+
+### 5. Spend it
 
 The grantee still has to ask for the grant — a fee grant is never applied automatically. Set
 `fee.granter` to the contract address, or use the dashboard in this repo: connect as the

@@ -17,6 +17,11 @@ export interface ChainConfig {
    * Testnet SCRT has no market, so it is absent there.
    */
   osmosisDenom?: string;
+  /**
+   * Address of a deployed gas-vault contract, if there is one. Empty when none
+   * is deployed; Settings overrides it per chain at runtime.
+   */
+  gasVaultAddress: string;
 }
 
 /** Both chains use the same coin, precision and address prefix. */
@@ -44,6 +49,20 @@ function endpointList(configured: string | undefined, fallbacks: string[]): stri
   return parsed.length > 0 ? parsed : fallbacks;
 }
 
+/**
+ * An env var set to nothing counts as unset, so a blank line in `.env` keeps the
+ * built-in default rather than silently clearing it.
+ */
+function configuredAddress(configured: string | undefined, fallback: string): string {
+  return (configured ?? "").trim() || fallback;
+}
+
+/**
+ * The gas vault this repo deployed on pulsar-3 (`contracts/gas-vault`), confirmed
+ * issuing fee grants. That contract's README has the code id and tx hashes.
+ */
+const PULSAR_GAS_VAULT = "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf";
+
 export const CHAINS: Record<ChainId, ChainConfig> = {
   "pulsar-3": {
     chainId: "pulsar-3",
@@ -63,6 +82,10 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     ]),
     explorerTxTemplate:
       process.env.NEXT_PUBLIC_EXPLORER_TX_URL ?? "https://testnet.ping.pub/secret/tx/{hash}",
+    gasVaultAddress: configuredAddress(
+      process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS,
+      PULSAR_GAS_VAULT,
+    ),
   },
   "secret-4": {
     chainId: "secret-4",
@@ -86,6 +109,8 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     // SCRT as it is denominated on Osmosis.
     osmosisDenom:
       "ibc/0954E1C28EB7AF5B72D24F3BC2B47BBB2FDF91BDDFD57B74B99E133AED40972A",
+    // No vault deployed on mainnet yet.
+    gasVaultAddress: configuredAddress(process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET, ""),
   },
 };
 
