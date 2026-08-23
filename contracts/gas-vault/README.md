@@ -45,6 +45,9 @@ That shows up as a rejection at upload.
 
 ## Running it on pulsar-3
 
+All commands run from the repository root unless stated otherwise, and Node 22.6+ is required
+for `--experimental-strip-types` (`node --version`).
+
 ### 1. Build a deployable artifact
 
 The chain rejects wasm built by a host toolchain — Rust 1.82+ emits the `reference-types` and
@@ -55,9 +58,19 @@ the artifact hash reproducible from a commit:
 cd contracts/gas-vault
 docker run --rm -v "$PWD":/contract -w /contract \
   ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13
+cd ../..
 ```
 
-That writes `contract.wasm.gz`, which the deploy script picks up automatically.
+PowerShell — the mount needs `${PWD}` inside the quotes, because a bare `$PWD` expands to an
+object Docker will not accept:
+
+```powershell
+cd contracts\gas-vault
+docker run --rm -v "${PWD}:/contract" -w /contract ghcr.io/scrtlabs/secret-contract-optimizer:1.0.13
+cd ..\..
+```
+
+Either way this writes `contract.wasm.gz`, which the deploy script picks up automatically.
 
 ### 2. Get a funded testnet account
 
@@ -67,10 +80,17 @@ Any mnemonic works; you need roughly 2 SCRT to cover the upload. Top it up at
 ### 3. Deploy and prove it
 
 ```bash
-cd ../..            # repo root, where secretjs is installed
 MNEMONIC="your twelve words …" \
 GRANTEE="secret1…the address that should get the allowance" \
   node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
+```
+
+PowerShell has no `VAR=value command` form, so set them first:
+
+```powershell
+$env:MNEMONIC = "your twelve words …"
+$env:GRANTEE  = "secret1…the address that should get the allowance"
+node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
 ```
 
 It uploads, instantiates, buys 1 SCRT of allowance (override with `AMOUNT`, in uscrt), then
