@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Monitor, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Monitor, Moon, Skull, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useFeePayer } from "@/hooks/useFeePayer";
@@ -12,9 +12,16 @@ import type { ThemePreference } from "@/lib/settings";
 
 import styles from "./SettingsPanel.module.css";
 
-const THEMES: Array<{ value: ThemePreference; label: string; icon: typeof Sun }> = [
+const THEMES: Array<{
+  value: ThemePreference;
+  label: string;
+  /** Spelled out for the tooltip and screen readers when `label` is short. */
+  title?: string;
+  icon: typeof Sun;
+}> = [
   { value: "dark", label: "Dark", icon: Moon },
   { value: "light", label: "Light", icon: Sun },
+  { value: "og", label: "OG", title: "Original Gangster", icon: Skull },
   { value: "system", label: "System", icon: Monitor },
 ];
 
@@ -62,11 +69,13 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
       <div className={styles.section}>
         <span className={styles.label}>Appearance</span>
         <div className={styles.segmented} role="group" aria-label="Theme">
-          {THEMES.map(({ value, label, icon: Icon }) => (
+          {THEMES.map(({ value, label, title, icon: Icon }) => (
             <button
               key={value}
               type="button"
               className={`${styles.segment} ${theme === value ? styles.segmentActive : ""}`}
+              title={title}
+              aria-label={title}
               aria-pressed={theme === value}
               onClick={() => setTheme(value)}
             >

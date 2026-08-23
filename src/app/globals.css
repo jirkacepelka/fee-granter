@@ -85,9 +85,39 @@
   color-scheme: light;
 }
 
+/*
+ * "Original Gangster" - the older Secret Network palette. Deep blue-grey
+ * surfaces, the red as the accent, the green kept for anything that reads as
+ * success, and white at 20% for every line.
+ */
+:root[data-theme="og"] {
+  --color-bg: #151a20;
+  --color-surface: #1b2128;
+  --color-surface-raised: #212832;
+  --color-track: #10141a;
+
+  --color-accent: #d53a2c;
+  --color-accent-hover: #e14e40;
+  --color-accent-press: #b32e22;
+
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-text-faint: rgba(255, 255, 255, 0.4);
+
+  --color-border: rgba(255, 255, 255, 0.2);
+  --color-border-strong: rgba(255, 255, 255, 0.35);
+  --color-hover: rgba(255, 255, 255, 0.08);
+
+  --color-danger: #e8594a;
+  --color-success: #5aa361;
+  --color-warning: #ffb020;
+
+  color-scheme: dark;
+}
+
 /* "System" leaves data-theme unset and follows the OS preference. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]):not([data-theme="og"]) {
     --color-bg: #fbfbfb;
     --color-surface: #ffffff;
     --color-surface-raised: #ffffff;
