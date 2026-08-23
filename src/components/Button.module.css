@@ -41,6 +41,20 @@
   background: var(--color-accent-press);
 }
 
+.cta {
+  background: var(--color-cta);
+  /* Matches .primary: white regardless of theme, since the fill is never light. */
+  color: #ffffff;
+}
+
+.cta:hover:not(:disabled) {
+  background: var(--color-cta-hover);
+}
+
+.cta:active:not(:disabled) {
+  background: var(--color-cta-press);
+}
+
 .ghost {
   background: transparent;
   border-color: var(--color-border);
@@ -50,6 +64,17 @@
 .ghost:hover:not(:disabled) {
   border-color: var(--color-border-strong);
   background: var(--color-hover);
+}
+
+.ghost-cta {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-cta) 45%, transparent);
+  color: var(--color-cta);
+}
+
+.ghost-cta:hover:not(:disabled) {
+  border-color: var(--color-cta);
+  background: color-mix(in srgb, var(--color-cta) 12%, transparent);
 }
 
 .danger {

@@ -22,6 +22,11 @@
      either off the accent - see OG. */
   --color-link: var(--color-accent);
   --color-info: var(--color-warning);
+  /* "Create" actions and toggle switches - a second accent, off the main one
+     that "act now" buttons (Suspend, Revoke) use. Themes may move it - see OG. */
+  --color-cta: var(--color-accent);
+  --color-cta-hover: color-mix(in srgb, var(--color-cta) 85%, white);
+  --color-cta-press: color-mix(in srgb, var(--color-cta) 85%, black);
 
   /* Text */
   --color-text: #ffffff;
@@ -112,6 +117,9 @@
   --color-meter: #5aa361;
   --color-link: #60a0dc;
   --color-info: #60a0dc;
+  /* --color-cta-hover/-press derive from this at :root, so overriding the
+     base colour here is enough. */
+  --color-cta: #60a0dc;
 
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.6);
