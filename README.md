@@ -119,9 +119,9 @@ what a bridge or event sponsor needs.
 
 On pulsar-3 this points at the vault this repo deployed,
 `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf`, so **Buy gas credit** sits next to *New fee
-grant* out of the box. Point it at your own under **Settings → Gas vault contract** (or
-`NEXT_PUBLIC_GAS_VAULT_ADDRESS`). Mainnet has no vault deployed, so the option stays hidden
-there until you set one.
+grant* out of the box. Point it at your own with `NEXT_PUBLIC_GAS_VAULT_ADDRESS` (there is no
+Settings override — the address is hardcoded per chain). Mainnet has no vault deployed, so the
+option stays hidden there until one is set.
 
 The contract's code hash is always read from the chain rather than configured: a migration
 changes it, and a stale hash does not degrade — it stops every query dead.
@@ -134,8 +134,6 @@ Deploying one is a one-off; see `contracts/gas-vault/README.md`.
 - **Endpoints** — per-chain LCD and RPC overrides.
 - **Transaction fees** — who pays for everything this app sends: `Auto`, a specific grant, or
   always this wallet.
-- **Gas vault contract** — address of a deployed `gas-vault`, per chain. Empty hides the
-  buy-credit option.
 
 Fee payment is one app-wide preference rather than a choice per screen, so creating a grant,
 revoking one, suspending all and sending SCRT all resolve it the same way. Adding a new

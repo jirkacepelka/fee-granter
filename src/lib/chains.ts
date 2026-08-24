@@ -19,7 +19,7 @@ export interface ChainConfig {
   osmosisDenom?: string;
   /**
    * Address of a deployed gas-vault contract, if there is one. Empty when none
-   * is deployed; Settings overrides it per chain at runtime.
+   * is deployed. Hardcoded per chain, not user-configurable.
    */
   gasVaultAddress: string;
 }
