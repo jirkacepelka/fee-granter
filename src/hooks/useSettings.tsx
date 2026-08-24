@@ -33,7 +33,6 @@ interface SettingsContextValue extends Settings {
   setEndpointOverride: (kind: "lcd" | "rpc", chainId: ChainId, url: string) => void;
   setFeeMode: (mode: SelectionMode) => void;
   setFeeGranter: (granter: string) => void;
-  setGasVaultAddress: (chainId: ChainId, address: string) => void;
   /** True once localStorage has been read, so the UI does not flash defaults. */
   ready: boolean;
 }
@@ -96,23 +95,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       chain: CHAINS[settings.chainId],
       activeLcdOverride: settings.lcdOverride[settings.chainId] ?? "",
       activeRpcOverride: settings.rpcOverride[settings.chainId] ?? "",
-      gasVaultAddress:
-        settings.gasVaultOverride[settings.chainId] ||
-        CHAINS[settings.chainId].gasVaultAddress,
+      gasVaultAddress: CHAINS[settings.chainId].gasVaultAddress,
       setChainId,
       setTheme: (theme) => update({ theme }),
       setEndpointOverride,
       setFeeMode: (feeMode) => update({ feeMode }),
       setFeeGranter: (feeGranter) => update({ feeGranter }),
-      setGasVaultAddress: (chainId, address) =>
-        setSettings((current) => {
-          const next: Settings = {
-            ...current,
-            gasVaultOverride: { ...current.gasVaultOverride, [chainId]: address },
-          };
-          saveSettings(next);
-          return next;
-        }),
       ready,
     }),
     [settings, setChainId, setEndpointOverride, update, ready],
