@@ -1,16 +1,16 @@
 /**
- * Deploy gas-vault and prove it works, end to end.
+ * Deploy gas-vault: upload and instantiate, and print the address to put in the app.
  *
- * Uploads, instantiates, buys an allowance for GRANTEE, then reads that grant
- * back out of the chain — because the only convincing evidence that a contract
- * can issue a fee grant is the grant existing afterwards.
+ *   MNEMONIC="..." node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
  *
- *   MNEMONIC="..." GRANTEE="secret1..." \
- *     node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
+ * Set GRANTEE as well to also buy an allowance and read the resulting grant back
+ * off the chain. That is not part of deploying — granting belongs in the app —
+ * but it is the only convincing proof that this chain lets a contract issue a
+ * fee grant at all, so it is worth doing once per chain.
  *
  * Defaults to pulsar-3. For mainnet, name it and confirm it:
  *
- *   CHAIN=secret-4 CONFIRM=secret-4 MNEMONIC="..." GRANTEE="secret1..." \
+ *   CHAIN=secret-4 CONFIRM=secret-4 MNEMONIC="..." \
  *     node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -44,7 +44,7 @@ function chainId(): ChainId {
   return value as ChainId;
 }
 
-/** How much allowance to buy, in uscrt. */
+/** How much allowance to buy, in uscrt. Only used when GRANTEE is set. */
 const AMOUNT = process.env.AMOUNT ?? "1000000";
 
 /** Upload, instantiate and the first grant, at 0.1 uscrt/gas plus room to spare. */
@@ -143,7 +143,9 @@ async function main() {
   }
 
   const mnemonic = required("MNEMONIC");
-  const grantee = required("GRANTEE");
+  // Optional: deploying and granting are separate jobs, and the app does the
+  // granting. Naming a grantee here only adds the one-off proof.
+  const grantee = process.env.GRANTEE;
 
   const wallet = new Wallet(mnemonic);
   const sender = wallet.address;
@@ -154,13 +156,17 @@ async function main() {
   console.log(`chain    ${chain}${config.testnet ? "" : "  (MAINNET)"}`);
   console.log(`lcd      ${lcd}`);
   console.log(`sender   ${sender}`);
-  console.log(`grantee  ${grantee}`);
-  console.log(`amount   ${AMOUNT} ${DENOM}`);
   console.log(`wasm     ${path}`);
+  if (grantee) {
+    console.log(`grantee  ${grantee}`);
+    console.log(`amount   ${AMOUNT} ${DENOM}`);
+  } else {
+    console.log(`grantee  none — deploying only, no allowance bought`);
+  }
 
   const balance = await secretjs.query.bank.balance({ address: sender, denom: DENOM });
   const held = BigInt(balance.balance?.amount ?? "0");
-  const needed = BigInt(AMOUNT) + FEES_HEADROOM;
+  const needed = (grantee ? BigInt(AMOUNT) : 0n) + FEES_HEADROOM;
   console.log(`balance  ${held} ${DENOM}`);
   if (held < needed) {
     throw new Error(`need about ${needed} ${DENOM} for the amount plus fees — ${config.topUp}`);
@@ -204,6 +210,20 @@ async function main() {
   console.log(`  contract ${contract}`);
   console.log(`  admin    ${sender} — can migrate this contract, so keep the key safe`);
 
+  if (!grantee) {
+    console.log(`\nDeployed: ${contract}`);
+    console.log(
+      `Put it in src/lib/chains.ts as the ${chain} gasVaultAddress, or set ` +
+        `NEXT_PUBLIC_GAS_VAULT_ADDRESS${config.testnet ? "" : "_MAINNET"}.`,
+    );
+    console.log(
+      "\nNothing has issued a grant yet, so this chain's stargate path is still unproven.\n" +
+        "The first purchase settles it, and settles it safely: the funds move in the same\n" +
+        "transaction as the grant, so a chain that cannot dispatch it returns them.",
+    );
+    return;
+  }
+
   console.log(`\n3. buy ${AMOUNT} ${DENOM} of allowance for the grantee`);
   // The funds arrive before execute runs, so this both funds the contract and
   // pays for the grant in one transaction. If the chain cannot dispatch the
@@ -243,9 +263,8 @@ async function main() {
   console.log(`\nA contract issued a fee grant. Granter is the contract: ${contract}`);
   console.log(`The grantee can now spend it by setting fee.granter to that address.`);
   console.log(
-    `\nPut it in the app: Settings → Gas vault contract, or NEXT_PUBLIC_GAS_VAULT_ADDRESS${
-      config.testnet ? "" : "_MAINNET"
-    }.`,
+    `\nPut it in src/lib/chains.ts as the ${chain} gasVaultAddress, or set ` +
+      `NEXT_PUBLIC_GAS_VAULT_ADDRESS${config.testnet ? "" : "_MAINNET"}.`,
   );
 }
 

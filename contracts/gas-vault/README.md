@@ -110,25 +110,27 @@ project root. The deploy script looks in both, so either layout works — check 
 Any mnemonic works; you need the amount you intend to grant plus roughly 1.5 SCRT for fees. On
 pulsar-3, top up at <https://faucet.pulsar.scrttestnet.com>.
 
-### 3. Deploy and prove it
+### 3. Deploy
 
 ```bash
 MNEMONIC="your twelve words …" \
-GRANTEE="secret1…the address that should get the allowance" \
   node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
 ```
 
-PowerShell has no `VAR=value command` form, so set them first:
+PowerShell has no `VAR=value command` form, so set it first:
 
 ```powershell
 $env:MNEMONIC = "your twelve words …"
-$env:GRANTEE  = "secret1…the address that should get the allowance"
 node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
 ```
 
-It uploads, instantiates, buys 1 SCRT of allowance (override with `AMOUNT`, in uscrt), then
-**reads the grant back off the chain** and fails loudly if it is not there. A transaction that
-returns without error is not evidence; the grant existing afterwards is.
+It uploads and instantiates, and prints the address. That is the whole job: issuing grants
+belongs in the app, not in a terminal.
+
+Add `GRANTEE` to also buy an allowance and **read the resulting grant back off the chain**,
+failing loudly if it is not there. Worth doing once per chain, because it is the only convincing
+proof that the chain lets a contract be a granter — a transaction that returns without error is
+not evidence, the grant existing afterwards is. `AMOUNT` sets how much, in uscrt, default 1 SCRT.
 
 Point it at a different node with `LCD_URL` if the default is down.
 
@@ -144,20 +146,21 @@ hold it.
 The same script, naming the chain and confirming it:
 
 ```powershell
-$env:CHAIN   = "secret-4"
-$env:CONFIRM = "secret-4"
+$env:CHAIN    = "secret-4"
+$env:CONFIRM  = "secret-4"
 $env:MNEMONIC = "your twelve words …"
-$env:GRANTEE  = "secret1…"
-$env:AMOUNT   = "1000000"
 node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
 ```
 
-`CONFIRM` exists because this spends real SCRT into a contract with **no withdrawal**: every
-uscrt paid in leaves only as somebody's gas.
+`CONFIRM` exists because deploying here spends real SCRT, and because anything later paid into
+this contract cannot come back out: it has **no withdrawal**, and every uscrt in it leaves only
+as somebody's gas. Deploying alone risks only the fees; that limit disappears the moment a
+`GRANTEE` is named.
 
-If `secret-4` turns out to lack the stargate encoder, step 3 fails and the funds stay where they
-are — the execute and the funds transfer are one atomic transaction. The cost of finding out is
-the gas, not the amount. Rehearse on pulsar-3 first anyway; it is the same script.
+Deploying without a `GRANTEE` proves nothing about whether this chain can dispatch the grant —
+the first purchase does that, and does it safely: the funds move in the same transaction as the
+grant, so a chain that cannot dispatch it returns them. The cost of finding out is the gas, not
+the amount. Rehearse on pulsar-3 first anyway; it is the same script.
 
 ### 4. Wire it into the dashboard
 
