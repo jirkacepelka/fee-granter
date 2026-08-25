@@ -118,10 +118,11 @@ from your wallet** — so the grantee does not depend on you staying funded afte
 what a bridge or event sponsor needs.
 
 On pulsar-3 this points at the vault this repo deployed,
-`secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf`, so **Buy gas credit** sits next to *New fee
-grant* out of the box. Point it at your own with `NEXT_PUBLIC_GAS_VAULT_ADDRESS` (there is no
-Settings override — the address is hardcoded per chain). Mainnet has no vault deployed, so the
-option stays hidden there until one is set.
+`secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf`; on secret-4 it points at
+`secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g`. Either way **Buy gas credit** sits next to
+*New fee grant* out of the box. Point it at your own with `NEXT_PUBLIC_GAS_VAULT_ADDRESS` /
+`NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET` (there is no Settings override — the address is
+hardcoded per chain).
 
 The contract's code hash is always read from the chain rather than configured: a migration
 changes it, and a stale hash does not degrade — it stops every query dead.
