@@ -66,6 +66,8 @@ function configuredValue(configured: string | undefined, fallback: string): stri
  * Migratable, so the query allow-list it depends on can be adapted to.
  */
 const PULSAR_GAS_VAULT = "secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f";
+/** The gas vault deployed on secret-4. */
+const MAINNET_GAS_VAULT = "secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g";
 
 export const CHAINS: Record<ChainId, ChainConfig> = {
   "pulsar-3": {
@@ -113,8 +115,10 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     // SCRT as it is denominated on Osmosis.
     osmosisDenom:
       "ibc/0954E1C28EB7AF5B72D24F3BC2B47BBB2FDF91BDDFD57B74B99E133AED40972A",
-    // No vault deployed on mainnet yet.
-    gasVaultAddress: configuredValue(process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET, ""),
+    gasVaultAddress: configuredValue(
+      process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET,
+      MAINNET_GAS_VAULT,
+    ),
   },
 };
 

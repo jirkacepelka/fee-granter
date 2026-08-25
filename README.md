@@ -43,7 +43,7 @@ overridden per chain at runtime from Settings in the app, which takes precedence
 | `NEXT_PUBLIC_EXPLORER_TX_URL` | pulsar-3 | ping.pub testnet |
 | `NEXT_PUBLIC_MAINNET_EXPLORER_TX_URL` | secret-4 | Mintscan |
 | `NEXT_PUBLIC_PRICE_API_URL` | mainnet only | Osmosis SQS, falls back to CoinGecko |
-| `NEXT_PUBLIC_GAS_VAULT_ADDRESS` / `_MAINNET` | either | pulsar-3 defaults to this repo's deployment; mainnet has none |
+| `NEXT_PUBLIC_GAS_VAULT_ADDRESS` / `_MAINNET` | either | pulsar-3 defaults to this repo's deployment; secret-4 defaults to `secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g` |
 
 ---
 
