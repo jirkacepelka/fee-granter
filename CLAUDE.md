@@ -109,8 +109,11 @@ than RFC 3339, which an amino-only signer such as a Ledger rejects.
   means the grant is never left revoked if the second message fails.
 - **A fee grant is never applied automatically.** The spending transaction must set
   `auth_info.fee.granter`; Keplr does not fill it in.
-- **A grant does not create an account.** A brand-new address still cannot sign until it has
-  received coins.
+- **A grant does create the grantee's account.** `GrantAllowance` calls
+  `NewAccountWithAddress` when the grantee is not in state (cosmos-sdk 0.50 `x/feegrant`
+  `keeper.go`), and the pubkey is filled in from the first signature. So an address holding
+  nothing can transact on a grant alone — which is what the community fee grant faucet relies
+  on.
 - Empty results from history or grant listing mean "nothing found" — never present them as
   proof that nothing exists.
 
@@ -129,9 +132,17 @@ behaviour:
 - A contract **can** be that signer, and this is **confirmed on pulsar-3**, not just inferred:
   `contracts/gas-vault` issues fee grants via `CosmosMsg::Stargate`, and the resulting grant
   names the contract as granter. Secret advertises the `stargate` capability and its compute
-  module applies no allow-list of message types, but requires every signer of a dispatched
+  module applies no allow-list of message *types*, but requires every signer of a dispatched
   message to be the contract itself — so a contract may grant only from its own balance. The
   deployment details are in that README. Not yet exercised on `secret-4`.
+- Stargate **queries** are a different matter: those *are* allow-listed
+  (`x/compute/internal/keeper/query_plugins.go`). `/cosmos.feegrant.v1beta1.Query/Allowance` is
+  on the list, `AllowancesByGranter` deliberately is not — only O(1) lookups are — and the
+  chain reserves the right to change it. That is why the vault is deployed with an admin.
+- A gas vault cannot become insolvent, and needs no ledger to prevent it. A purchase raises its
+  balance and its outstanding allowances by the same amount; a spent fee lowers both by the
+  same amount, because `x/auth` charges the fee to the granter. A ledger that only counted
+  upwards was what bricked the first version — see that contract's README.
 
 ## Environment
 

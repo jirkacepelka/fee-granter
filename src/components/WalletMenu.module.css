@@ -58,7 +58,7 @@
 .balanceBlock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
 .balanceLabel {
@@ -70,36 +70,14 @@
 }
 
 .balanceValue {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .balanceFiat {
   font-size: 13px;
   color: var(--color-text-muted);
-}
-
-.addressRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: transparent;
-  font-size: 13px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  transition: border-color var(--transition);
-}
-
-.addressRow:hover {
-  border-color: var(--color-border-strong);
-}
-
-.addressRow svg {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
 }
 
 .actions {

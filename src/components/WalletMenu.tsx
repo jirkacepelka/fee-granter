@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  ArrowDownToLine,
-  Check,
-  Copy,
-  Fuel,
-  LogOut,
-  Send,
-  Settings,
-  Wallet,
-} from "lucide-react";
+import { ArrowDownToLine, Fuel, LogOut, Send, Settings, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { useHistory } from "@/hooks/useHistory";
@@ -58,21 +49,9 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [view, setView] = useState<View>("main");
-  const [copied, setCopied] = useState(false);
 
   const history = useHistory(lcdUrl, address, menuOpen);
   const { grants: feeGrants } = useFeePayer();
-
-  const copy = async () => {
-    if (!address) return;
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // Clipboard can be blocked by permissions.
-    }
-  };
 
   if (!keplrInstalled) {
     return (
@@ -175,11 +154,6 @@ export function WalletMenu({ onSend, sending }: WalletMenuProps) {
                   {fiatLine(balance, price)}
                 </span>
               </div>
-
-              <button className={styles.addressRow} onClick={() => void copy()}>
-                <span>{truncateAddress(address, 14, 8)}</span>
-                {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-              </button>
 
               <div className={styles.actions}>
                 <Button

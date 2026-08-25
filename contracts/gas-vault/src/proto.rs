@@ -10,6 +10,16 @@ use prost::Message;
 pub const MSG_GRANT_ALLOWANCE: &str = "/cosmos.feegrant.v1beta1.MsgGrantAllowance";
 pub const MSG_REVOKE_ALLOWANCE: &str = "/cosmos.feegrant.v1beta1.MsgRevokeAllowance";
 pub const BASIC_ALLOWANCE: &str = "/cosmos.feegrant.v1beta1.BasicAllowance";
+pub const QUERY_ALLOWANCE: &str = "/cosmos.feegrant.v1beta1.Query/Allowance";
+
+/// What x/feegrant says when a grant is not there.
+///
+/// `getGrant` returns `ErrNotFound.Wrap("fee-grant not found")` and the gRPC
+/// layer passes the text through, so this substring is the only thing that
+/// separates "the grant is gone" from "the query did not work" — a difference
+/// the contract has to get right, because one means nothing is owed and the
+/// other means it must not assume that.
+pub const NOT_FOUND: &str = "fee-grant not found";
 
 #[derive(Clone, PartialEq, Message)]
 pub struct Coin {
@@ -52,6 +62,31 @@ pub struct MsgRevokeAllowance {
     pub granter: String,
     #[prost(string, tag = "2")]
     pub grantee: String,
+}
+
+/// One entry of `QueryAllowanceResponse`. Mirrors `feegrant.Grant`.
+#[derive(Clone, PartialEq, Message)]
+pub struct Grant {
+    #[prost(string, tag = "1")]
+    pub granter: String,
+    #[prost(string, tag = "2")]
+    pub grantee: String,
+    #[prost(message, optional, tag = "3")]
+    pub allowance: Option<Any>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct QueryAllowanceRequest {
+    #[prost(string, tag = "1")]
+    pub granter: String,
+    #[prost(string, tag = "2")]
+    pub grantee: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct QueryAllowanceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub allowance: Option<Grant>,
 }
 
 pub fn encode(msg: &impl Message) -> Vec<u8> {

@@ -4,7 +4,7 @@ import { CircleAlert, Fuel } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { DECIMALS, DISPLAY_DENOM } from "@/lib/chains";
-import type { VaultSolvency } from "@/lib/gasVault";
+import type { VaultStatus } from "@/lib/gasVault";
 import { formatAmount, isValidAddress, truncateAddress } from "@/lib/format";
 
 import { Button } from "./Button";
@@ -14,7 +14,7 @@ import { Modal } from "./Modal";
 interface BuyCreditModalProps {
   open: boolean;
   vaultAddress: string;
-  solvency?: VaultSolvency;
+  status?: VaultStatus;
   /** Pre-fills the grantee, so "top up my own wallet" is one click. */
   selfAddress?: string;
   submitting: boolean;
@@ -27,7 +27,7 @@ const AMOUNT_PATTERN = /^\d*(\.\d*)?$/;
 export function BuyCreditModal({
   open,
   vaultAddress,
-  solvency,
+  status,
   selfAddress,
   submitting,
   onClose,
@@ -93,10 +93,10 @@ export function BuyCreditModal({
           <Fuel size={15} aria-hidden />
           <div>
             <span className={styles.vaultLabel}>Vault {truncateAddress(vaultAddress, 12, 6)}</span>
-            {solvency ? (
+            {status ? (
               <span className={styles.vaultMeta}>
-                {formatAmount(solvency.outstanding)} {DISPLAY_DENOM} outstanding ·{" "}
-                {formatAmount(solvency.balance)} {DISPLAY_DENOM} held
+                {formatAmount(status.balance)} {DISPLAY_DENOM} held, backing every grant it
+                has issued
               </span>
             ) : null}
           </div>

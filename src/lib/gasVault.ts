@@ -15,15 +15,20 @@ import { toMicroUnits } from "./format";
 /** Gas for the execute plus the grant (and a revoke when topping up). */
 export const GAS_BUY = 400_000;
 
-export interface VaultSolvency {
-  /** Base units the contract has promised and not yet seen spent. */
-  outstanding: string;
-  /** What the contract actually holds. */
+export interface VaultStatus {
+  /**
+   * What the contract holds, in base units — which is also the sum of every
+   * allowance it has issued and not seen spent.
+   *
+   * The two cannot drift: a purchase raises both by what was paid, and a
+   * granted fee, charged to the granter, lowers both by what it cost. So the
+   * vault cannot owe more than it holds, and this one figure says everything
+   * about whether its grants are backed.
+   */
   balance: string;
 }
 
-interface SolvencyReply {
-  outstanding?: string;
+interface StatusReply {
   balance?: string;
 }
 
@@ -92,21 +97,18 @@ export async function buyGasCredit(
   );
 }
 
-/** What the vault owes against what it holds. */
-export async function queryVaultSolvency(
+/** What the vault holds, and so what it can still honour. */
+export async function queryVaultStatus(
   client: SecretNetworkClient,
   contractAddress: string,
-): Promise<VaultSolvency> {
+): Promise<VaultStatus> {
   const code_hash = await codeHashFor(client, contractAddress);
 
   const reply = (await client.query.compute.queryContract({
     contract_address: contractAddress,
     code_hash,
-    query: { solvency: {} },
-  })) as SolvencyReply;
+    query: { status: {} },
+  })) as StatusReply;
 
-  return {
-    outstanding: reply?.outstanding ?? "0",
-    balance: reply?.balance ?? "0",
-  };
+  return { balance: reply?.balance ?? "0" };
 }

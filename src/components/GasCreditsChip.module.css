@@ -1,0 +1,14 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-meter);
+}
+
+.chip svg {
+  color: var(--color-meter);
+  flex-shrink: 0;
+}

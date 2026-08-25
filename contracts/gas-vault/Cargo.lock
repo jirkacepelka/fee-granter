@@ -261,7 +261,6 @@ dependencies = [
  "prost",
  "schemars",
  "secret-cosmwasm-std",
- "secret-cosmwasm-storage",
  "serde",
  "thiserror",
 ]
@@ -518,16 +517,6 @@ dependencies = [
  "serde-json-wasm",
  "thiserror",
  "uint",
-]
-
-[[package]]
-name = "secret-cosmwasm-storage"
-version = "1.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb43da2cb72a53b16ea1555bca794fb828b48ab24ebeb45f8e26f1881c45a783"
-dependencies = [
- "secret-cosmwasm-std",
- "serde",
 ]
 
 [[package]]

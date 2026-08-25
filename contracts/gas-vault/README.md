@@ -27,45 +27,31 @@ testing this contract:
 | The protobuf is on the wire correctly | `cargo test` decodes the Stargate payload back and checks every field |
 
 ```bash
-cargo test                                          # 5 tests
+cargo test                                          # 9 tests
 cargo build --release --target wasm32-unknown-unknown
 ```
 
 ## Confirmed on pulsar-3
 
-Deployed and exercised end to end on 23 August 2026. The contract issued a fee grant, and the
-grant was read back off the chain afterwards:
+Deployed and exercised end to end. The contract issued a fee grant, and the grant was read back
+off the chain afterwards:
 
 | | |
 | --- | --- |
-| Contract | `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` |
-| Code id | 79 |
-| Code hash | `998473c0e1e3a8a1335ea695042b6de2b4503376b8679bdd5fda601b35bee021` |
-| Upload | `A2EB7B48A5B5A3D76BA8069B379333E555F5B454252EC78A6D919AB02DBAD795` |
-| Instantiate | `53786DE31B27844B39BF18787AE2F6D504C1601B21D7F7337DE9C421ECB5D060` |
-| Buy 1 SCRT of credit | `EC38B953B3EBD9F3A0C98B2D5F5349B96C10241AD017EF75ED9342D44231FDB0` |
-
-The resulting grant, from `/cosmos/feegrant/v1beta1/allowances/{grantee}`:
-
-```json
-{
-  "granter": "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf",
-  "grantee": "secret1nfuen7f7ntrwqud7rzl4zu88kkerx0ykn6axhs",
-  "allowance": {
-    "@type": "/cosmos.feegrant.v1beta1.BasicAllowance",
-    "spend_limit": [{ "denom": "uscrt", "amount": "1000000" }],
-    "expiration": null
-  }
-}
-```
+| Contract | `secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f` |
 
 The granter is the **contract**, not the wallet that paid — which is the whole point, and the
 thing the source reading above predicted.
 
-Still open: this has not been run on `secret-4`. The evidence and the deployment are both
+An earlier deployment, `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` (code id 79), proved the
+same thing on 23 August 2026 but ran the accounting described under *Solvency, and the bug that
+was not there*. It wedges shut the first time a grantee spends any of the allowance and has no
+`migrate` entry point to repair, so it is superseded rather than kept.
+
+Still open: this has not been run on `secret-4`. The evidence and the deployments are all
 pulsar-3, and mainnet may run an older version without the stargate encoder.
 
-## Running it on pulsar-3
+## Running it
 
 All commands run from the repository root unless stated otherwise, and Node 22.6+ is required
 for `--experimental-strip-types` (`node --version`).
@@ -101,32 +87,62 @@ Optimizer 1.0.13 writes into `optimized-wasm/`; older images wrote `contract.was
 project root. The deploy script looks in both, so either layout works — check the build printed
 `Finished \`release\` profile` and move on.
 
-### 2. Get a funded testnet account
+### 2. Get a funded account
 
-Any mnemonic works; you need roughly 2 SCRT to cover the upload. Top it up at
-<https://faucet.pulsar.scrttestnet.com>.
+Any mnemonic works; you need the amount you intend to grant plus roughly 1.5 SCRT for fees. On
+pulsar-3, top up at <https://faucet.pulsar.scrttestnet.com>.
 
-### 3. Deploy and prove it
+### 3. Deploy
 
 ```bash
 MNEMONIC="your twelve words …" \
-GRANTEE="secret1…the address that should get the allowance" \
-  node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
+  node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
 ```
 
-PowerShell has no `VAR=value command` form, so set them first:
+PowerShell has no `VAR=value command` form, so set it first:
 
 ```powershell
 $env:MNEMONIC = "your twelve words …"
-$env:GRANTEE  = "secret1…the address that should get the allowance"
-node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
+node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
 ```
 
-It uploads, instantiates, buys 1 SCRT of allowance (override with `AMOUNT`, in uscrt), then
-**reads the grant back off the chain** and fails loudly if it is not there. A transaction that
-returns without error is not evidence; the grant existing afterwards is.
+It uploads and instantiates, and prints the address. That is the whole job: issuing grants
+belongs in the app, not in a terminal.
+
+Add `GRANTEE` to also buy an allowance and **read the resulting grant back off the chain**,
+failing loudly if it is not there. Worth doing once per chain, because it is the only convincing
+proof that the chain lets a contract be a granter — a transaction that returns without error is
+not evidence, the grant existing afterwards is. `AMOUNT` sets how much, in uscrt, default 1 SCRT.
 
 Point it at a different node with `LCD_URL` if the default is down.
+
+The contract is instantiated with the deploying address as **admin**, so it can be migrated.
+That is deliberate: `Remaining` depends on a query allow-list the chain reserves the right to
+change, and an immutable contract could not be repaired if it did. The cost is that the admin
+key can migrate the vault to code that empties it, so it is worth the same care as any hot key —
+`secretd tx compute clear-contract-admin` gives that up permanently if you would rather not
+hold it.
+
+### 3b. Mainnet
+
+The same script, naming the chain and confirming it:
+
+```powershell
+$env:CHAIN    = "secret-4"
+$env:CONFIRM  = "secret-4"
+$env:MNEMONIC = "your twelve words …"
+node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
+```
+
+`CONFIRM` exists because deploying here spends real SCRT, and because anything later paid into
+this contract cannot come back out: it has **no withdrawal**, and every uscrt in it leaves only
+as somebody's gas. Deploying alone risks only the fees; that limit disappears the moment a
+`GRANTEE` is named.
+
+Deploying without a `GRANTEE` proves nothing about whether this chain can dispatch the grant —
+the first purchase does that, and does it safely: the funds move in the same transaction as the
+grant, so a chain that cannot dispatch it returns them. The cost of finding out is the gas, not
+the amount. Rehearse on pulsar-3 first anyway; it is the same script.
 
 ### 4. Wire it into the dashboard
 
@@ -157,10 +173,37 @@ curl -s https://pulsar.lcd.secretnodes.com/cosmos/base/tendermint/v1beta1/node_i
 
 ## Design notes
 
-**A grant is a promise, not an escrow.** `x/feegrant` reserves nothing, so a contract that
-issued more than it holds would leave a stranger's transaction failing at the fee step. The
-contract therefore tracks what it owes and refuses to over-commit — `Solvency {}` reports both
-sides.
+**Solvency, and the bug that was not there.** `x/feegrant` reserves nothing, so a contract that
+issued more than it holds would leave a stranger's transaction failing at the fee step. The first
+version of this contract answered that with a ledger: it added up what it had granted and
+refused to promise past its balance.
+
+That was both unnecessary and harmful.
+
+Unnecessary, because the two figures cannot drift apart. A purchase raises the balance and the
+allowances outstanding by the same amount. A granted fee, when spent, lowers both by the same
+amount — `x/auth`'s `DeductFeeDecorator` sets `deductFeesFrom = feeGranterAddr`, so the fee comes
+out of the contract, while `UseGrantedFees` takes it off the allowance. **Balance is the sum of
+the outstanding allowances, identically**, which is why `Status {}` reports one figure and not
+two. Anyone sending SCRT here without buying credit only moves it the safe way.
+
+Harmful, because the ledger only counted upwards. Spending was invisible to it, so a spent uscrt
+left the balance and stayed on the books. The check `outstanding + paid > balance + paid` reduces
+to `outstanding > balance`, which the first spent uscrt made true forever: the vault refused
+every subsequent purchase, permanently. It passed its tests because nothing in them ever spent
+a grant.
+
+What the contract does need is the *live* figure for the one grantee being topped up, since
+re-granting what it issued last time would re-promise fees already spent. It reads that from
+`/cosmos.feegrant.v1beta1.Query/Allowance`, which Secret allows from a contract
+(`x/compute/internal/keeper/query_plugins.go:177`). `AllowancesByGranter` is deliberately not
+allowed — only O(1) lookups are — which is the reason a contract cannot total its own book even
+if it wanted to.
+
+Three answers have to be told apart, and the contract does: a figure, an absent grant (drained to
+zero or revoked, so nothing is owed), and a query that could not be made. The last one refuses the
+top-up rather than guessing. A first-time buyer is never asked about at all, so the commonest
+path keeps working even if that allow-list changes.
 
 **Topping up is revoke + grant.** `MsgGrantAllowance` is rejected when a grant already exists
 and there is no update message, so a second payment emits a revoke followed by a grant for the

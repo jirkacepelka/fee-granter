@@ -51,18 +51,21 @@ function endpointList(configured: string | undefined, fallbacks: string[]): stri
 
 /**
  * An env var set to nothing counts as unset, so a blank line in `.env` keeps the
- * built-in default rather than silently clearing it.
+ * built-in default rather than silently clearing it. Applies to any string
+ * setting, not just addresses — an empty `explorerTxTemplate` would otherwise
+ * turn every explorer link into `href=""`, which just reopens the current page.
  */
-function configuredAddress(configured: string | undefined, fallback: string): string {
+function configuredValue(configured: string | undefined, fallback: string): string {
   return (configured ?? "").trim() || fallback;
 }
 
 /**
  * The gas vault this repo deployed on pulsar-3 (`contracts/gas-vault`), confirmed
  * issuing fee grants. That contract's README has the code id and tx hashes.
+ *
+ * Migratable, so the query allow-list it depends on can be adapted to.
  */
-const PULSAR_GAS_VAULT = "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf";
-
+const PULSAR_GAS_VAULT = "secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f";
 /** The gas vault deployed on secret-4. */
 const MAINNET_GAS_VAULT = "secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g";
 
@@ -83,12 +86,11 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
       "https://rpc.pulsar3.scrtlabs.com/rpc",
       "https://rpc.testnet.secretsaturn.net",
     ]),
-    explorerTxTemplate:
-      process.env.NEXT_PUBLIC_EXPLORER_TX_URL ?? "https://testnet.ping.pub/secret/tx/{hash}",
-    gasVaultAddress: configuredAddress(
-      process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS,
-      PULSAR_GAS_VAULT,
+    explorerTxTemplate: configuredValue(
+      process.env.NEXT_PUBLIC_EXPLORER_TX_URL,
+      "https://testnet.ping.pub/secret/tx/{hash}",
     ),
+    gasVaultAddress: configuredValue(process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS, PULSAR_GAS_VAULT),
   },
   "secret-4": {
     chainId: "secret-4",
@@ -106,13 +108,14 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
       "https://rpc.mainnet.secretsaturn.net",
       "https://rpc.secret.express",
     ]),
-    explorerTxTemplate:
-      process.env.NEXT_PUBLIC_MAINNET_EXPLORER_TX_URL ??
+    explorerTxTemplate: configuredValue(
+      process.env.NEXT_PUBLIC_MAINNET_EXPLORER_TX_URL,
       "https://www.mintscan.io/secret/tx/{hash}",
+    ),
     // SCRT as it is denominated on Osmosis.
     osmosisDenom:
       "ibc/0954E1C28EB7AF5B72D24F3BC2B47BBB2FDF91BDDFD57B74B99E133AED40972A",
-    gasVaultAddress: configuredAddress(
+    gasVaultAddress: configuredValue(
       process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET,
       MAINNET_GAS_VAULT,
     ),
