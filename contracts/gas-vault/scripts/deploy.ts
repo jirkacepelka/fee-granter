@@ -28,7 +28,9 @@ const CHAINS = {
     topUp: "top up at https://faucet.pulsar.scrttestnet.com",
   },
   "secret-4": {
-    lcd: "https://lcd.mainnet.secretsaturn.net",
+    // The one mainnet endpoint this project has actually seen resolve. Others
+    // in src/lib/chains.ts are worth trying via LCD_URL if it is down.
+    lcd: "https://lcd-secret.keplr.app",
     testnet: false,
     topUp: "this is real SCRT",
   },
