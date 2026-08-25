@@ -21,6 +21,12 @@
   gap: var(--space-4);
 }
 
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .network {
   display: inline-flex;
   align-items: center;

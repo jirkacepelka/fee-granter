@@ -51,6 +51,7 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { ConfirmDialog } from "./ConfirmDialog";
 import styles from "./Dashboard.module.css";
+import { GasCreditsChip } from "./GasCreditsChip";
 import { GrantFormModal } from "./GrantFormModal";
 import { GrantRow } from "./GrantRow";
 import { UsageBar } from "./UsageBar";
@@ -277,7 +278,10 @@ export function Dashboard() {
       <div className={styles.container}>
         <div className={styles.topBar}>
           <NetworkSwitcher />
-          <WalletMenu onSend={handleSend} sending={submitting} />
+          <div className={styles.topBarRight}>
+            <GasCreditsChip />
+            <WalletMenu onSend={handleSend} sending={submitting} />
+          </div>
         </div>
 
         <section className={styles.summary}>
