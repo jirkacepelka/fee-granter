@@ -4,7 +4,6 @@ import { Fuel } from "lucide-react";
 
 import { useFeePayer } from "@/hooks/useFeePayer";
 import { useSettings } from "@/hooks/useSettings";
-import { DISPLAY_DENOM } from "@/lib/chains";
 import { availableFee } from "@/lib/feegrant-sdk";
 import { formatAmount } from "@/lib/format";
 
@@ -29,7 +28,7 @@ export function GasCreditsChip() {
   return (
     <span className={styles.chip} title="Gas credit granted by the vault contract">
       <Fuel size={14} aria-hidden />
-      {uncapped ? "Uncapped" : `${formatAmount(total.toString())} ${DISPLAY_DENOM}`}
+      {uncapped ? "Uncapped gas credits" : `${formatAmount(total.toString())} gas credits`}
     </span>
   );
 }
