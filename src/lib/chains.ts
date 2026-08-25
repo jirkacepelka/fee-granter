@@ -63,11 +63,9 @@ function configuredValue(configured: string | undefined, fallback: string): stri
  * The gas vault this repo deployed on pulsar-3 (`contracts/gas-vault`), confirmed
  * issuing fee grants. That contract's README has the code id and tx hashes.
  *
- * It runs superseded code: it stops accepting purchases once anyone spends part
- * of a grant, and has no `migrate` entry point to repair. Redeploy and change
- * this address before leaning on it.
+ * Migratable, so the query allow-list it depends on can be adapted to.
  */
-const PULSAR_GAS_VAULT = "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf";
+const PULSAR_GAS_VAULT = "secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f";
 
 export const CHAINS: Record<ChainId, ChainConfig> = {
   "pulsar-3": {

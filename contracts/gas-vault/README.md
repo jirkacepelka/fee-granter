@@ -33,40 +33,22 @@ cargo build --release --target wasm32-unknown-unknown
 
 ## Confirmed on pulsar-3
 
-Deployed and exercised end to end on 23 August 2026. The contract issued a fee grant, and the
-grant was read back off the chain afterwards:
+Deployed and exercised end to end. The contract issued a fee grant, and the grant was read back
+off the chain afterwards:
 
 | | |
 | --- | --- |
-| Contract | `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` |
-| Code id | 79 |
-| Code hash | `998473c0e1e3a8a1335ea695042b6de2b4503376b8679bdd5fda601b35bee021` |
-| Upload | `A2EB7B48A5B5A3D76BA8069B379333E555F5B454252EC78A6D919AB02DBAD795` |
-| Instantiate | `53786DE31B27844B39BF18787AE2F6D504C1601B21D7F7337DE9C421ECB5D060` |
-| Buy 1 SCRT of credit | `EC38B953B3EBD9F3A0C98B2D5F5349B96C10241AD017EF75ED9342D44231FDB0` |
-
-The resulting grant, from `/cosmos/feegrant/v1beta1/allowances/{grantee}`:
-
-```json
-{
-  "granter": "secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf",
-  "grantee": "secret1nfuen7f7ntrwqud7rzl4zu88kkerx0ykn6axhs",
-  "allowance": {
-    "@type": "/cosmos.feegrant.v1beta1.BasicAllowance",
-    "spend_limit": [{ "denom": "uscrt", "amount": "1000000" }],
-    "expiration": null
-  }
-}
-```
+| Contract | `secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f` |
 
 The granter is the **contract**, not the wallet that paid — which is the whole point, and the
 thing the source reading above predicted.
 
-That deployment runs **superseded code** — see *Solvency, and the bug that was not there* below.
-It works, but it wedges shut the first time the grantee spends any of the allowance, and it has
-no `migrate` entry point to repair. Redeploy before relying on it.
+An earlier deployment, `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` (code id 79), proved the
+same thing on 23 August 2026 but ran the accounting described under *Solvency, and the bug that
+was not there*. It wedges shut the first time a grantee spends any of the allowance and has no
+`migrate` entry point to repair, so it is superseded rather than kept.
 
-Still open: this has not been run on `secret-4`. The evidence and the deployment are both
+Still open: this has not been run on `secret-4`. The evidence and the deployments are all
 pulsar-3, and mainnet may run an older version without the stargate encoder.
 
 ## Running it
