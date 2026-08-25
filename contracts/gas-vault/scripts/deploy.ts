@@ -1,12 +1,17 @@
 /**
- * Deploy gas-vault to pulsar-3 and prove it works, end to end.
+ * Deploy gas-vault and prove it works, end to end.
  *
  * Uploads, instantiates, buys an allowance for GRANTEE, then reads that grant
  * back out of the chain — because the only convincing evidence that a contract
  * can issue a fee grant is the grant existing afterwards.
  *
  *   MNEMONIC="..." GRANTEE="secret1..." \
- *     node --experimental-strip-types contracts/gas-vault/scripts/deploy-pulsar.ts
+ *     node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
+ *
+ * Defaults to pulsar-3. For mainnet, name it and confirm it:
+ *
+ *   CHAIN=secret-4 CONFIRM=secret-4 MNEMONIC="..." GRANTEE="secret1..." \
+ *     node --experimental-strip-types contracts/gas-vault/scripts/deploy.ts
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -14,12 +19,36 @@ import { fileURLToPath } from "node:url";
 
 import { SecretNetworkClient, Wallet, type TxResponse } from "secretjs";
 
-const CHAIN_ID = "pulsar-3";
-const LCD = process.env.LCD_URL ?? "https://pulsar.lcd.secretnodes.com";
 const DENOM = "uscrt";
 
-/** How much allowance to buy, in uscrt. 1 SCRT covers a lot of testnet fees. */
+const CHAINS = {
+  "pulsar-3": {
+    lcd: "https://pulsar.lcd.secretnodes.com",
+    testnet: true,
+    topUp: "top up at https://faucet.pulsar.scrttestnet.com",
+  },
+  "secret-4": {
+    lcd: "https://lcd.mainnet.secretsaturn.net",
+    testnet: false,
+    topUp: "this is real SCRT",
+  },
+} as const;
+
+type ChainId = keyof typeof CHAINS;
+
+function chainId(): ChainId {
+  const value = process.env.CHAIN ?? "pulsar-3";
+  if (!(value in CHAINS)) {
+    throw new Error(`CHAIN must be one of ${Object.keys(CHAINS).join(", ")}, got ${value}`);
+  }
+  return value as ChainId;
+}
+
+/** How much allowance to buy, in uscrt. */
 const AMOUNT = process.env.AMOUNT ?? "1000000";
+
+/** Upload, instantiate and the first grant, at 0.1 uscrt/gas plus room to spare. */
+const FEES_HEADROOM = 1_500_000n;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -99,28 +128,42 @@ function attribute(tx: TxResponse, key: string): string {
 }
 
 async function main() {
+  const chain = chainId();
+  const config = CHAINS[chain];
+  const lcd = process.env.LCD_URL ?? config.lcd;
+
+  // Real money, and the vault is one-way: what goes in leaves only as gas.
+  // Worth a deliberate second word rather than an env var set once and forgotten.
+  if (!config.testnet && process.env.CONFIRM !== chain) {
+    throw new Error(
+      `${chain} is mainnet and this spends real SCRT.\n` +
+        `The vault has no withdrawal: every uscrt paid in leaves only as somebody's gas.\n` +
+        `Re-run with CONFIRM=${chain} if that is what you want.`,
+    );
+  }
+
   const mnemonic = required("MNEMONIC");
   const grantee = required("GRANTEE");
 
   const wallet = new Wallet(mnemonic);
   const sender = wallet.address;
-  const secretjs = new SecretNetworkClient({
-    url: LCD,
-    chainId: CHAIN_ID,
-    wallet,
-    walletAddress: sender,
-  });
+  const secretjs = new SecretNetworkClient({ url: lcd, chainId: chain, wallet, walletAddress: sender });
 
   const path = wasmPath();
 
+  console.log(`chain    ${chain}${config.testnet ? "" : "  (MAINNET)"}`);
+  console.log(`lcd      ${lcd}`);
   console.log(`sender   ${sender}`);
   console.log(`grantee  ${grantee}`);
+  console.log(`amount   ${AMOUNT} ${DENOM}`);
   console.log(`wasm     ${path}`);
 
   const balance = await secretjs.query.bank.balance({ address: sender, denom: DENOM });
-  console.log(`balance  ${balance.balance?.amount ?? "0"} ${DENOM}`);
-  if (BigInt(balance.balance?.amount ?? "0") < 2_000_000n) {
-    throw new Error("need at least ~2 SCRT — top up at https://faucet.pulsar.scrttestnet.com");
+  const held = BigInt(balance.balance?.amount ?? "0");
+  const needed = BigInt(AMOUNT) + FEES_HEADROOM;
+  console.log(`balance  ${held} ${DENOM}`);
+  if (held < needed) {
+    throw new Error(`need about ${needed} ${DENOM} for the amount plus fees — ${config.topUp}`);
   }
 
   console.log("\n1. upload");
@@ -148,6 +191,10 @@ async function main() {
         code_hash: codeHash,
         init_msg: {},
         label: `gas-vault-${Date.now()}`,
+        // Migratable on purpose: the contract reads x/feegrant through a query
+        // allow-list the chain reserves the right to change, and an immutable
+        // contract could not be repaired if it did.
+        admin: sender,
       },
       { gasLimit: 400_000 },
     ),
@@ -155,10 +202,12 @@ async function main() {
   );
   const contract = attribute(created, "contract_address");
   console.log(`  contract ${contract}`);
+  console.log(`  admin    ${sender} — can migrate this contract, so keep the key safe`);
 
   console.log(`\n3. buy ${AMOUNT} ${DENOM} of allowance for the grantee`);
   // The funds arrive before execute runs, so this both funds the contract and
-  // pays for the grant in one transaction.
+  // pays for the grant in one transaction. If the chain cannot dispatch the
+  // grant, the whole transaction reverts and the funds stay put.
   ok(
     await secretjs.tx.compute.executeContract(
       {
@@ -184,15 +233,20 @@ async function main() {
   }
   console.log(JSON.stringify(mine, null, 2));
 
-  const solvency = await secretjs.query.compute.queryContract({
+  const status = await secretjs.query.compute.queryContract({
     contract_address: contract,
     code_hash: codeHash,
-    query: { solvency: {} },
+    query: { status: {} },
   });
-  console.log(`\nsolvency ${JSON.stringify(solvency)}`);
+  console.log(`\nstatus ${JSON.stringify(status)}`);
 
   console.log(`\nA contract issued a fee grant. Granter is the contract: ${contract}`);
   console.log(`The grantee can now spend it by setting fee.granter to that address.`);
+  console.log(
+    `\nPut it in the app: Settings → Gas vault contract, or NEXT_PUBLIC_GAS_VAULT_ADDRESS${
+      config.testnet ? "" : "_MAINNET"
+    }.`,
+  );
 }
 
 main().catch((error) => {

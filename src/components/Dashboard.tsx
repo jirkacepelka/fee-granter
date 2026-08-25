@@ -24,8 +24,8 @@ import { GAS_BUY } from "@/lib/gasVault";
 import { sendScrt } from "@/lib/bank";
 import {
   buyGasCredit,
-  queryVaultSolvency,
-  type VaultSolvency,
+  queryVaultStatus,
+  type VaultStatus,
 } from "@/lib/gasVault";
 import {
   grantAllowance,
@@ -84,7 +84,7 @@ export function Dashboard() {
   const [revoking, setRevoking] = useState<FeeGrant>();
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
-  const [vault, setVault] = useState<VaultSolvency>();
+  const [vault, setVault] = useState<VaultStatus>();
   const [submitting, setSubmitting] = useState(false);
 
   const totals = useMemo(() => summarise(grants), [grants]);
@@ -206,7 +206,7 @@ export function Dashboard() {
       return;
     }
     try {
-      setVault(await queryVaultSolvency(client, gasVaultAddress));
+      setVault(await queryVaultStatus(client, gasVaultAddress));
     } catch {
       // A vault we cannot read is left blank rather than shown as empty.
       setVault(undefined);
@@ -420,7 +420,7 @@ export function Dashboard() {
       <BuyCreditModal
         open={buyOpen}
         vaultAddress={gasVaultAddress}
-        solvency={vault}
+        status={vault}
         selfAddress={address}
         submitting={submitting}
         onClose={() => setBuyOpen(false)}
