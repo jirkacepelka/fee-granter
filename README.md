@@ -330,6 +330,26 @@ either unset keeps the built-in default (this repo's own pulsar-3 deployment; ma
 yet, so **Buy gas credit** stays hidden there until one is set). Building, deploying and
 verifying your own instance is covered start to finish in `contracts/gas-vault/README.md`.
 
+### Paying with a SNIP-20 instead of SCRT
+
+The vault takes native `uscrt` and nothing else, so holding sSCRT or stkd-SCRT would
+otherwise mean unwrapping or selling in a separate transaction first — and the amount that
+comes out cannot be known when the transaction is signed. `contracts/swap-and-grant` closes
+that gap: it takes the token, redeems or swaps it, and pays the vault, all in one signature,
+reading the runtime amount in a `reply`. The vault itself is untouched.
+
+Set `NEXT_PUBLIC_SWAP_AND_GRANT_ADDRESS_MAINNET` and a token picker appears in **Buy gas
+credit**; the stkd-SCRT route additionally needs the four ShadeSwap variables in
+`.env.example`, which the contract's deploy script reads off the chain and prints for you.
+Nothing keys off the chain id — with no executor address set, everything behaves exactly as
+it did before, which is also what pulsar-3 gets, since ShadeSwap is deployed on secret-4
+only.
+
+Two things to know before relying on it: the swap path quotes `min_out` from the pool for
+every trade, because stkd-SCRT is a staking derivative whose rate against SCRT is above one
+and rising — parity would be no bound at all. And the whole chain of calls is deep enough
+that its gas cost is the open question, not a detail; see `contracts/swap-and-grant/README.md`.
+
 ## Project layout
 
 ```

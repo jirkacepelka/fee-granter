@@ -1,5 +1,42 @@
 # swap-and-grant — návrh kontraktu
 
+## Stav implementace (aktualizováno)
+
+Většina plánu je **hotová a commitnutá** na `claude/elegant-keller-kppaaj`:
+
+| | co | stav |
+| --- | --- | --- |
+| `a668203` | Kontrakt `contracts/swap-and-grant`, obě větve. **28 unit testů prochází.** Wasm exportuje `reply` a **žádné `requires_*`** — na rozdíl od vaultu nemůže být odmítnut při uploadu kvůli capability. | hotovo |
+| `5bf7166` | `contracts/mock-router` — test double reprodukující `reply_always` nesting, umí podhodnotit dodávku, spolknout chybu i vnořit se zpátky do executoru. | hotovo |
+| `e991162` | Frontend: `chains.ts`, `snip20.ts`, `swapQuote.ts`, `gasVault.ts`, `BuyCreditModal`, `Dashboard`, `.env.example`. `lint`, `typecheck`, `build` i `test:sdk` čisté. | hotovo |
+| — | `contracts/swap-and-grant/scripts/deploy.ts` — načítá code hash routeru a pár z chainu, ověřuje, že pár opravdu drží sSCRT i stkd-SCRT, nasazuje immutable, tiskne skutečně spotřebovaný gas. Napsaný a odzkoušený (guard na `CONFIRM` sedí), **necommitnutý**. | čeká |
+| — | `contracts/swap-and-grant/README.md` ve stylu `gas-vault/README.md`. | zbývá |
+
+### Co se během psaní ověřilo a změnilo návrh
+
+- **O5 uzavřeno ze zdrojáku:** router doručuje výstup SNIP-20 **`Send`** s `recipient_code_hash: None`, ne `Transfer`. A SNIP-20 volá `Receive` příjemce **jen** když `Send` nese code hash, nebo když si příjemce hash zaregistroval (`try_add_receiver_api_callback`). Executor se proto **záměrně neregistruje** — tím routerovo doručení nemůže vůbec vstoupit zpátky do našeho `Receive`. Nezaregistrovat se je bezpečnostní vlastnost, ne opomenutí, a je to v kódu okomentované.
+- Z toho plyne druhá věc, kterou bych jinak udělal špatně: `Receive` **bez payloadu** musí uspět a nic neudělat, ne zchybovat. Kdyby chyboval, cizí `Send` s explicitním hashem by shodil každý nákup v letu.
+- **O1 uzavřeno:** `BlockInfo.random` v 1.1.11 existuje, ale za feature, která přidá do wasm `requires_random` a tím novou upload-time podmínku. Nebereme.
+
+### Blokátor: LocalSecret v tomhle prostředí nejde
+
+Docker démon jsem nastartoval, ale **blob CDN obou registrů blokuje egress policy** —
+`pkg-containers.githubusercontent.com` i `production.cloudfront.docker.com` vrací 403.
+Manifest se stáhne, vrstvy ne. Takže:
+
+1. **O6 a O7 zůstávají otevřené.** Ani Stargate grant z vnořeného vaultu, ani reply přes
+   cizí kontrakt jsem tady spustit nemohl. Mock router je připravený, ale nemá kde běžet.
+2. **Gas je neměřený.** `GAS_BUY_WITH_SSCRT` a `GAS_BUY_VIA_SWAP` jsou v kódu označené
+   jako provizorní, nastavené vysoko (nespotřebovaný gas se neúčtuje) a deploy skript
+   vytiskne skutečnou spotřebu k dosazení.
+3. **Wasm, který jsem postavil lokálně, není nasaditelný.** Optimizer image se taky
+   nestáhne, a host build s Rustem 1.94 emituje `reference-types` — což chain odmítá,
+   jak dokumentuje README vaultu. Artefakt se musí postavit u tebe pinovaným optimizerem;
+   deploy skript to kontroluje a odmítne nahrát host build.
+
+Zvednout to jde jedním způsobem: povolit v network policy prostředí ty dva blob hosty.
+Pak celý krok 2 a 4 doběhne tady. Jinak to musí proběhnout na tvém stroji.
+
 ## Kontext
 
 `contracts/gas-vault` prodává gas credit **výhradně za nativní uscrt** přiložený jako
