@@ -1,0 +1,31 @@
+[package]
+name = "swap-and-grant"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[dependencies]
+# Secret's fork, aliased to the upstream name because #[entry_point] expands to
+# code referring to `cosmwasm_std`.
+#
+# Deliberately WITHOUT the `stargate` feature, unlike contracts/gas-vault. This
+# contract only ever sends WasmMsg::Execute and BankMsg::Send; the x/feegrant
+# work happens inside the vault, which signs it as itself. So this wasm exports
+# no capability requirement at all, and cannot be rejected at upload for asking
+# the chain for something it does not advertise.
+cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.1.11" }
+schemars = "0.8"
+serde = { version = "1.0", default-features = false, features = ["derive"] }

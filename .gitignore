@@ -12,3 +12,6 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Rust build output for contracts/
+target/

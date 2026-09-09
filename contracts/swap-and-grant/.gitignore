@@ -1,0 +1,4 @@
+target/
+optimized-wasm/
+contract.wasm
+contract.wasm.gz
