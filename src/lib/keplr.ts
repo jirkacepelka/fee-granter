@@ -13,6 +13,10 @@ interface KeplrWindow {
   getOfflineSigner(chainId: string): OfflineSigner;
   getOfflineSignerOnlyAmino(chainId: string): OfflineSigner;
   getEnigmaUtils?(chainId: string): unknown;
+  /** Throws rather than returning null when the wallet holds no key. */
+  getSecret20ViewingKey?(chainId: string, contractAddress: string): Promise<string>;
+  /** Adds the token to the wallet, which is also how a viewing key is made. */
+  suggestToken?(chainId: string, contractAddress: string): Promise<void>;
 }
 
 interface OfflineSigner {

@@ -20,10 +20,11 @@ import {
   GAS_REVOKE,
   GAS_SEND,
 } from "@/lib/chains";
-import { GAS_BUY } from "@/lib/gasVault";
+import { GAS_BUY, gasForToken } from "@/lib/gasVault";
 import { sendScrt } from "@/lib/bank";
 import {
   buyGasCredit,
+  buyGasCreditWithToken,
   queryVaultStatus,
   type VaultStatus,
 } from "@/lib/gasVault";
@@ -46,7 +47,7 @@ import {
 import { forgetGrantee, rememberGrantee } from "@/lib/registry";
 
 import { Amount } from "./Amount";
-import { BuyCreditModal } from "./BuyCreditModal";
+import { BuyCreditModal, type BuyRequest } from "./BuyCreditModal";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -73,7 +74,7 @@ function errorMessage(caught: unknown): string {
 }
 
 export function Dashboard() {
-  const { status, address, client, error: walletError, refreshBalance } = useWallet();
+  const { status, address, client, balance, error: walletError, refreshBalance } = useWallet();
   const { chain, gasVaultAddress } = useSettings();
   const { granterFor, refresh: refreshFeeGrants } = useFeePayer();
   const { grants, loading, error, source, refresh, retry } = useGrants(address);
@@ -217,29 +218,49 @@ export function Dashboard() {
     void refreshVault();
   }, [refreshVault]);
 
+  /**
+   * One handler for both ways of paying. Which contract the transaction goes
+   * to is decided by the request, not by a branch on the chain: with no
+   * executor deployed the picker offers nothing but SCRT and this always takes
+   * the first path, exactly as it did before the executor existed.
+   */
   const handleBuyCredit = useCallback(
-    async (grantee: string, amount: string) => {
+    async (request: BuyRequest) => {
       if (!client || !address || !gasVaultAddress) return;
+      const { grantee, amount, token, minOut } = request;
 
       const ok = await runTx(
         () =>
-          buyGasCredit(
-            client,
-            gasVaultAddress,
-            address,
-            grantee,
-            amount,
-            granterFor(GAS_BUY, [MSG_EXECUTE_CONTRACT]),
-          ),
-        `${amount} ${DISPLAY_DENOM} of gas credit issued to ${truncateAddress(grantee)}.`,
+          token
+            ? buyGasCreditWithToken(
+                client,
+                chain.swapAndGrantAddress,
+                token,
+                address,
+                grantee,
+                amount,
+                minOut,
+                granterFor(gasForToken(token), [MSG_EXECUTE_CONTRACT]),
+              )
+            : buyGasCredit(
+                client,
+                gasVaultAddress,
+                address,
+                grantee,
+                amount,
+                granterFor(GAS_BUY, [MSG_EXECUTE_CONTRACT]),
+              ),
+        token
+          ? `${amount} ${token.symbol} paid in; credit issued to ${truncateAddress(grantee)}.`
+          : `${amount} ${DISPLAY_DENOM} of gas credit issued to ${truncateAddress(grantee)}.`,
       );
 
       if (ok) {
-        await refreshVault();
+        await Promise.all([refreshVault(), refreshBalance()]);
         setBuyOpen(false);
       }
     },
-    [client, address, gasVaultAddress, runTx, granterFor, refreshVault],
+    [client, address, gasVaultAddress, chain, runTx, granterFor, refreshVault, refreshBalance],
   );
 
   const openCreate = () => {
@@ -420,7 +441,13 @@ export function Dashboard() {
       <BuyCreditModal
         open={buyOpen}
         vaultAddress={gasVaultAddress}
+        executorAddress={chain.swapAndGrantAddress}
+        chainId={chain.chainId}
+        client={client}
+        sscrt={chain.sscrt}
+        swapTokens={chain.swapTokens}
         status={vault}
+        nativeBalance={balance}
         selfAddress={address}
         submitting={submitting}
         onClose={() => setBuyOpen(false)}

@@ -132,3 +132,62 @@
 .error svg {
   flex-shrink: 0;
 }
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.token {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 96px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  text-align: left;
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.token:hover {
+  border-color: var(--color-border-strong);
+}
+
+.tokenActive {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.tokenSymbol {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.tokenBalance {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-faint);
+}
+
+.keyPrompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.keyPrompt:hover {
+  text-decoration: underline;
+}
