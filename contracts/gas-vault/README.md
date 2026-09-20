@@ -31,25 +31,34 @@ cargo test                                          # 9 tests
 cargo build --release --target wasm32-unknown-unknown
 ```
 
-## Confirmed on pulsar-3
+## Confirmed on both chains
 
 Deployed and exercised end to end. The contract issued a fee grant, and the grant was read back
 off the chain afterwards:
 
-| | |
-| --- | --- |
-| Contract | `secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f` |
+| Chain | Contract | Code id |
+| --- | --- | --- |
+| pulsar-3 | `secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f` | |
+| secret-4 | `secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g` | 2611 |
 
 The granter is the **contract**, not the wallet that paid — which is the whole point, and the
 thing the source reading above predicted.
+
+Mainnet does run a version with the stargate encoder, which was the open question: the vault
+there has been bought from and is holding the allowances it issued. Its balance is the live
+answer, since balance and outstanding allowances are the same figure:
+
+```bash
+curl -s https://lcd-secret.keplr.app/cosmos/bank/v1beta1/balances/secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g
+```
 
 An earlier deployment, `secret1g6aw3d26kkd88yduqxaf7axffj3xfjvuklh4jf` (code id 79), proved the
 same thing on 23 August 2026 but ran the accounting described under *Solvency, and the bug that
 was not there*. It wedges shut the first time a grantee spends any of the allowance and has no
 `migrate` entry point to repair, so it is superseded rather than kept.
 
-Still open: this has not been run on `secret-4`. The evidence and the deployments are all
-pulsar-3, and mainnet may run an older version without the stargate encoder.
+Rehearse on pulsar-3 before touching mainnet anyway. Nothing paid into a vault comes back out,
+on either chain.
 
 ## Running it
 

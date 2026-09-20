@@ -22,6 +22,14 @@ export interface ChainConfig {
    * is deployed. Hardcoded per chain, not user-configurable.
    */
   gasVaultAddress: string;
+  /**
+   * The SNIP-20 that wraps SCRT 1:1, i.e. sSCRT. Empty when this chain's
+   * address has not been confirmed against the chain, in which case buying gas
+   * credits out of sSCRT is unavailable here rather than attempted with a
+   * guess. Never a code hash — that is read live, because a migration changes
+   * it and a stale one stops every query dead.
+   */
+  sscrtAddress: string;
 }
 
 /** Both chains use the same coin, precision and address prefix. */
@@ -69,6 +77,13 @@ const PULSAR_GAS_VAULT = "secret16wmu0cy4ukh2g50qt7n0q62esmcz62sgrz0h8f";
 /** The gas vault deployed on secret-4. */
 const MAINNET_GAS_VAULT = "secret1kkmu4vydkppkhzmx00glm20vn47t09544adv0g";
 
+/**
+ * sSCRT on secret-4, confirmed against the chain: label `sscrt`, code id 2280.
+ * Its code hash is deliberately not recorded here — the contract has been
+ * migrated at least once, so any hash written down goes stale.
+ */
+const MAINNET_SSCRT = "secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek";
+
 export const CHAINS: Record<ChainId, ChainConfig> = {
   "pulsar-3": {
     chainId: "pulsar-3",
@@ -91,6 +106,9 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
       "https://testnet.ping.pub/secret/tx/{hash}",
     ),
     gasVaultAddress: configuredValue(process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS, PULSAR_GAS_VAULT),
+    // Not confirmed against pulsar-3 — left empty rather than guessed. Set
+    // NEXT_PUBLIC_SSCRT_ADDRESS once an address has actually been queried.
+    sscrtAddress: configuredValue(process.env.NEXT_PUBLIC_SSCRT_ADDRESS, ""),
   },
   "secret-4": {
     chainId: "secret-4",
@@ -118,6 +136,10 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     gasVaultAddress: configuredValue(
       process.env.NEXT_PUBLIC_GAS_VAULT_ADDRESS_MAINNET,
       MAINNET_GAS_VAULT,
+    ),
+    sscrtAddress: configuredValue(
+      process.env.NEXT_PUBLIC_SSCRT_ADDRESS_MAINNET,
+      MAINNET_SSCRT,
     ),
   },
 };

@@ -134,7 +134,8 @@ behaviour:
   names the contract as granter. Secret advertises the `stargate` capability and its compute
   module applies no allow-list of message *types*, but requires every signer of a dispatched
   message to be the contract itself — so a contract may grant only from its own balance. The
-  deployment details are in that README. Not yet exercised on `secret-4`.
+  deployment details are in that README. Exercised on `secret-4` too, so the open question about
+  whether mainnet carries the stargate encoder is closed.
 - Stargate **queries** are a different matter: those *are* allow-listed
   (`x/compute/internal/keeper/query_plugins.go`). `/cosmos.feegrant.v1beta1.Query/Allowance` is
   on the list, `AllowancesByGranter` deliberately is not — only O(1) lookups are — and the
